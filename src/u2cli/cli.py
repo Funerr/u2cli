@@ -645,7 +645,8 @@ def element_long_click(
 
 @element_app.command("set-text")
 def element_set_text(
-    value: str = typer.Option(..., "--text"),
+    value: str | None = typer.Option(None, "--value"),
+    text: str | None = TextOpt,
     text_contains: str | None = TextContainsOpt,
     resource_id: str | None = ResourceIdOpt,
     description: str | None = DescriptionOpt,
@@ -654,8 +655,18 @@ def element_set_text(
     xpath: str | None = XPathOpt,
     index: int | None = IndexOpt,
 ) -> None:
+    selector_text = text
+    if value is None:
+        if text is None:
+            raise U2CliError(
+                ErrorCode.INVALID_ARGUMENT,
+                "element set-text requires --value, or legacy --text without selector text",
+                {"argument": "value"},
+            )
+        value = text
+        selector_text = None
     selector = _selector_options(
-        None,
+        selector_text,
         text_contains,
         resource_id,
         description,

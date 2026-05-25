@@ -1,0 +1,7 @@
+{
+  "type": "module",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./extensions/u2cli.ts"]
+  }
+}

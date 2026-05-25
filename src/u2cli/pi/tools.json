@@ -1,0 +1,100 @@
+{
+  "name": "u2cli",
+  "description": "Typed wrappers for u2cli Android automation commands.",
+  "selectorSchema": {
+    "text": "string?",
+    "textContains": "string?",
+    "resourceId": "string?",
+    "description": "string?",
+    "descriptionContains": "string?",
+    "className": "string?",
+    "xpath": "string?",
+    "index": "integer?"
+  },
+  "tools": [
+    {
+      "name": "doctor",
+      "label": "u2cli doctor",
+      "description": "Run local environment and optional target-device health checks.",
+      "command": ["u2cli", "--json", "doctor"],
+      "inputSchema": {}
+    },
+    {
+      "name": "devices",
+      "label": "u2cli devices",
+      "description": "List attached Android devices.",
+      "command": ["u2cli", "--json", "devices"],
+      "inputSchema": {}
+    },
+    {
+      "name": "screen_dump_compact",
+      "label": "u2cli screen dump compact",
+      "description": "Dump the selected Android device UI hierarchy as compact JSON.",
+      "command": ["u2cli", "--json", "screen", "dump", "--compact"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "screen_screenshot",
+      "label": "u2cli screen screenshot",
+      "description": "Capture a screenshot from the selected Android device.",
+      "command": ["u2cli", "--json", "screen", "screenshot"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "out": "string"}
+    },
+    {
+      "name": "element_find",
+      "label": "u2cli element find",
+      "description": "Find Android UI elements matching a structured selector.",
+      "command": ["u2cli", "--json", "element", "find"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "selector": "Selector"}
+    },
+    {
+      "name": "element_click",
+      "label": "u2cli element click",
+      "description": "Click one Android UI element matching a structured selector.",
+      "command": ["u2cli", "--json", "element", "click"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "selector": "Selector"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "element_set_text",
+      "label": "u2cli element set text",
+      "description": "Set text on one Android UI element matching a structured selector.",
+      "command": ["u2cli", "--json", "element", "set-text"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "selector": "Selector",
+        "text": "string"
+      },
+      "optionFlags": {"text": "--value"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "input_tap",
+      "label": "u2cli input tap",
+      "description": "Tap absolute screen coordinates on the selected Android device.",
+      "command": ["u2cli", "--json", "input", "tap"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "x": "integer", "y": "integer"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "toast_get",
+      "label": "u2cli toast get",
+      "description": "Read a toast message from the selected Android device.",
+      "command": ["u2cli", "--json", "toast", "get"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "device_clipboard_set",
+      "label": "u2cli device clipboard set",
+      "description": "Set the Android device clipboard text.",
+      "command": ["u2cli", "--json", "device", "clipboard-set"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "text": "string"},
+      "mutates": true,
+      "confirm": true
+    }
+  ]
+}

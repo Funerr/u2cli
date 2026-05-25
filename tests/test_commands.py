@@ -108,6 +108,26 @@ def test_element_set_text(fake_device, capsys) -> None:
     assert fake_device.element.text_value == "qa@example.com"
 
 
+def test_element_set_text_value_allows_selector_text(fake_device, capsys) -> None:
+    code, payload = run_main(
+        [
+            "--serial",
+            "emulator-5554",
+            "element",
+            "set-text",
+            "--text",
+            "Login",
+            "--value",
+            "qa@example.com",
+        ],
+        capsys,
+    )
+
+    assert code == 0
+    assert payload["data"]["selector"] == {"text": "Login"}
+    assert fake_device.element.text_value == "qa@example.com"
+
+
 def test_app_list_and_permission(fake_device, capsys) -> None:
     code, payload = run_main(["--serial", "emulator-5554", "app", "list"], capsys)
     assert code == 0
@@ -312,6 +332,7 @@ def test_pi_schema(capsys) -> None:
     assert code == 0
     assert payload["command"] == "pi.schema"
     assert payload["data"]["tools"][0]["name"] == "doctor"
+    assert payload["data"]["tools"][6]["optionFlags"] == {"text": "--value"}
 
 
 def test_session_info(capsys) -> None:

@@ -21,6 +21,7 @@ Pi tool -> u2cli -> uiautomator2 -> Android device
 - [项目结构](#项目结构)
 - [全局参数](#全局参数)
 - [命令总览](#命令总览)
+- [Pi integration](#pi-integration)
 - [Selector 规则](#selector-规则)
 - [JSON 返回契约](#json-返回契约)
 - [错误码和退出码](#错误码和退出码)
@@ -255,6 +256,34 @@ u2cli pi schema
 当前实现是每条命令独立连接设备。`session sidecar-start` 会明确返回 sidecar 尚未实现，便于调用方探测能力边界。
 
 `pi schema` 会导出一份面向 Pi tool 的紧凑工具描述。
+
+## Pi integration
+
+本仓库内置 Pi extension，可作为 Pi package 使用。安装到当前项目：
+
+```bash
+pi install -l git:github.com/Funerr/u2cli@<tag-or-commit>
+```
+
+临时测试：
+
+```bash
+pi -e git:github.com/Funerr/u2cli
+```
+
+Pi package 只注册工具包装器；CLI 本体仍需要安装到运行环境：
+
+```bash
+uv tool install git+https://github.com/Funerr/u2cli
+```
+
+默认调用 `u2cli`。如果要使用自定义路径，可以设置：
+
+```bash
+export U2CLI_BIN=/path/to/u2cli
+```
+
+Pi extension 的工具定义和 `u2cli pi schema` 共享 `src/u2cli/pi/tools.json`，避免 README、Python schema 和 TypeScript extension 维护多份命令列表。
 
 ## Selector 规则
 

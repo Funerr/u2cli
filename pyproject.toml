@@ -29,6 +29,9 @@ u2cli = "u2cli.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/u2cli"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/u2cli/pi/tools.json" = "u2cli/pi/tools.json"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [

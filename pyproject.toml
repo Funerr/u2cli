@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "u2cli"
+version = "0.1.0"
+description = "Agent-friendly Android CLI built on uiautomator2"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "filelock>=3",
+  "pydantic>=2",
+  "typer>=0.12",
+  "uiautomator2>=3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-mock>=3",
+  "ruff>=0.6",
+  "mypy>=1.10",
+]
+
+[project.scripts]
+u2cli = "u2cli.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/u2cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: requires a real Android device and U2CLI_TEST_SERIAL",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src/u2cli"]

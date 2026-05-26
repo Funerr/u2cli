@@ -18,12 +18,14 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+type SchemaType = "string" | "integer" | "number" | "boolean" | "Selector" | "point";
+
 type ToolSpec = {
   name: string;
   label?: string;
   description?: string;
   command: string[];
-  inputSchema: Record<string, string>;
+  inputSchema: Record<string, `${SchemaType}${"?" | ""}`>;
   optionFlags?: Record<string, string>;
   confirm?: boolean;
 };
@@ -43,14 +45,11 @@ type Selector = {
   index?: number;
 };
 
-type ToolArgs = {
+type ToolInput = Record<string, unknown> & {
   serial?: string;
   timeoutMs?: number;
   selector?: Selector;
-  text?: string;
-  out?: string;
-  x?: number;
-  y?: number;
+  confirmed?: boolean;
 };
 
 type CommandResult = {
@@ -67,15 +66,17 @@ type ExecutionDetails = {
   exitCode: number | null;
   signal: NodeJS.Signals | null;
   stderr: string;
+  stdout?: string;
   payload?: CommandResult;
-  u2cliFailed: boolean;
+  error?: string;
 };
 
 type U2CliToolResult = AgentToolResult<ExecutionDetails>;
 
 const TOOL_PREFIX = "u2cli_";
-const INSTALL_HINT =
-  "u2cli binary not found. Install it with `uv tool install git+https://github.com/Funerr/u2cli` or set `U2CLI_BIN=/path/to/u2cli`.";
+const FALLBACK_SOURCE = "git+https://github.com/Funerr/u2cli.git";
+const EXEC_HINT =
+  "Set U2CLI_BIN=/path/to/u2cli, install with `uv tool install git+https://github.com/Funerr/u2cli`, or make `uvx` available for the git fallback.";
 
 const selectorSchema = Type.Object(
   {
@@ -102,11 +103,14 @@ const selectorFlags: Record<keyof Selector, string> = {
   index: "--index",
 };
 
-const primitiveSchemas = {
+const primitiveSchemas: Record<SchemaType, () => TSchema> = {
   string: () => Type.String(),
   integer: () => Type.Integer(),
+  number: () => Type.Number(),
+  boolean: () => Type.Boolean(),
   Selector: () => selectorSchema,
-} as const;
+  point: () => Type.Tuple([Type.Integer(), Type.Integer()]),
+};
 
 const sharedToolsPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -114,14 +118,14 @@ const sharedToolsPath = resolve(
 );
 const sharedTools = JSON.parse(await readFile(sharedToolsPath, "utf8")) as SharedTools;
 
-function schemaFromSpec(spec: ToolSpec) {
+function schemaFromSpec(spec: ToolSpec): TSchema {
   const properties: Record<string, TSchema> = {};
   const required: string[] = [];
 
   for (const [name, encodedType] of Object.entries(spec.inputSchema)) {
     const optional = encodedType.endsWith("?");
-    const baseType = optional ? encodedType.slice(0, -1) : encodedType;
-    const schemaFactory = primitiveSchemas[baseType as keyof typeof primitiveSchemas];
+    const baseType = (optional ? encodedType.slice(0, -1) : encodedType) as SchemaType;
+    const schemaFactory = primitiveSchemas[baseType];
     if (!schemaFactory) {
       throw new Error(`Unsupported u2cli Pi schema type ${encodedType} for ${spec.name}.${name}`);
     }
@@ -134,11 +138,24 @@ function schemaFromSpec(spec: ToolSpec) {
   return Type.Object(properties, { additionalProperties: false, required });
 }
 
-function buildArgs(spec: ToolSpec, input: ToolArgs): string[] {
-  const args = [...spec.command];
-  if (args[0] === "u2cli") {
-    args.shift();
+function flagName(field: string, spec: ToolSpec): string {
+  return spec.optionFlags?.[field] ?? `--${field.replace(/[A-Z]/g, "-$&").toLowerCase()}`;
+}
+
+function pointValue(field: string, value: unknown): string {
+  if (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    Number.isInteger(value[0]) &&
+    Number.isInteger(value[1])
+  ) {
+    return `${value[0]},${value[1]}`;
   }
+  throw new Error(`${field} must be a two-integer point like [x, y]`);
+}
+
+function buildArgs(spec: ToolSpec, input: ToolInput): string[] {
+  const args = ["--json"];
 
   if (input.serial) {
     args.push("--serial", input.serial);
@@ -147,6 +164,8 @@ function buildArgs(spec: ToolSpec, input: ToolArgs): string[] {
     args.push("--timeout-ms", String(input.timeoutMs));
   }
 
+  args.push(...spec.command);
+
   for (const [field, value] of Object.entries(input.selector ?? {}) as [keyof Selector, string | number][]) {
     if (value !== undefined) {
       args.push(selectorFlags[field], String(value));
@@ -154,16 +173,34 @@ function buildArgs(spec: ToolSpec, input: ToolArgs): string[] {
   }
 
   for (const [field, encodedType] of Object.entries(spec.inputSchema)) {
-    if (field === "serial" || field === "timeoutMs" || field === "selector") {
+    if (field === "serial" || field === "timeoutMs" || field === "selector" || field === "confirmed") {
       continue;
     }
-    const value = input[field as keyof ToolArgs];
-    if (value !== undefined) {
-      const flag = spec.optionFlags?.[field] ?? `--${field.replace(/[A-Z]/g, "-$&").toLowerCase()}`;
-      args.push(flag, String(value));
-    } else if (!encodedType.endsWith("?")) {
-      throw new Error(`Missing required u2cli argument: ${field}`);
+
+    const optional = encodedType.endsWith("?");
+    const baseType = optional ? encodedType.slice(0, -1) : encodedType;
+    const value = input[field];
+
+    if (value === undefined) {
+      if (!optional) {
+        throw new Error(`Missing required u2cli argument: ${field}`);
+      }
+      continue;
     }
+
+    const flag = flagName(field, spec);
+    if (baseType === "boolean") {
+      if (value === true) {
+        args.push(flag);
+      }
+      continue;
+    }
+    if (baseType === "point") {
+      args.push(flag, pointValue(field, value));
+      continue;
+    }
+
+    args.push(flag, String(value));
   }
 
   return args;
@@ -182,73 +219,150 @@ function parseStdout(stdout: string): CommandResult {
   return payload as CommandResult;
 }
 
-async function runU2Cli(args: string[]): Promise<{ text: string; details: ExecutionDetails }> {
-  const bin = process.env.U2CLI_BIN || "u2cli";
+type CommandCandidate = {
+  file: string;
+  argsPrefix: string[];
+  fallbackOnMissing: boolean;
+};
 
-  return await new Promise((resolvePromise, rejectPromise) => {
+function commandCandidates(): CommandCandidate[] {
+  if (process.env.U2CLI_BIN) {
+    return [{ file: process.env.U2CLI_BIN, argsPrefix: [], fallbackOnMissing: false }];
+  }
+  return [
+    { file: "u2cli", argsPrefix: [], fallbackOnMissing: true },
+    { file: "uvx", argsPrefix: ["--from", FALLBACK_SOURCE, "u2cli"], fallbackOnMissing: false },
+  ];
+}
+
+function errorPayload(code: string, message: string): CommandResult {
+  return {
+    success: false,
+    error: { code, message },
+  };
+}
+
+function formatResult(payload: CommandResult): string {
+  return JSON.stringify(payload, null, 2);
+}
+
+function runCandidate(candidate: CommandCandidate, args: string[]): Promise<{
+  missing: boolean;
+  text: string;
+  details: ExecutionDetails;
+  isError: boolean;
+}> {
+  const commandArgs = [...candidate.argsPrefix, ...args];
+
+  return new Promise((resolvePromise) => {
     execFile(
-      bin,
-      args,
+      candidate.file,
+      commandArgs,
       { encoding: "utf8", maxBuffer: 20 * 1024 * 1024 },
       (error, stdout, stderr) => {
-        let exitCode: number | null = 0;
-        let signal: NodeJS.Signals | null = null;
-
-        if (error) {
-          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-            rejectPromise(new Error(INSTALL_HINT));
-            return;
-          }
-
-          exitCode =
-            typeof (error as { code?: unknown }).code === "number"
-              ? ((error as { code: number }).code)
-              : null;
-          signal = ((error as { signal?: NodeJS.Signals | null }).signal ?? null) as NodeJS.Signals | null;
-        }
-
-        let payload: CommandResult;
-        try {
-          payload = parseStdout(stdout);
-        } catch (parseError) {
-          const details: ExecutionDetails = {
-            command: [bin, ...args],
-            exitCode,
-            signal,
-            stderr,
-            u2cliFailed: true,
-          };
-          rejectPromise(
-            Object.assign(parseError instanceof Error ? parseError : new Error(String(parseError)), {
-              details,
-            }),
-          );
+        if ((error as NodeJS.ErrnoException | null)?.code === "ENOENT") {
+          resolvePromise({
+            missing: true,
+            text: "",
+            details: {
+              command: [candidate.file, ...commandArgs],
+              exitCode: null,
+              signal: null,
+              stderr,
+              error: `${candidate.file} was not found`,
+            },
+            isError: true,
+          });
           return;
         }
 
-        const text = JSON.stringify(payload, null, 2);
-        const details: ExecutionDetails = {
-          command: [bin, ...args],
-          exitCode,
-          signal,
-          stderr,
-          payload,
-          u2cliFailed: payload.success === false,
-        };
+        const exitCode =
+          error && typeof (error as { code?: unknown }).code === "number"
+            ? (error as { code: number }).code
+            : 0;
+        const signal = ((error as { signal?: NodeJS.Signals | null } | null)?.signal ??
+          null) as NodeJS.Signals | null;
+        const command = [candidate.file, ...commandArgs];
 
-        resolvePromise({ text, details });
+        try {
+          const payload = parseStdout(stdout);
+          const isError = exitCode !== 0 || payload.success === false;
+          resolvePromise({
+            missing: false,
+            text: formatResult(payload),
+            details: { command, exitCode, signal, stderr, payload },
+            isError,
+          });
+        } catch (parseError) {
+          const message = parseError instanceof Error ? parseError.message : String(parseError);
+          const payload = errorPayload("U2CLI_NON_JSON_OUTPUT", message);
+          resolvePromise({
+            missing: false,
+            text: formatResult(payload),
+            details: {
+              command,
+              exitCode,
+              signal,
+              stderr,
+              stdout,
+              payload,
+              error: message,
+            },
+            isError: true,
+          });
+        }
       },
     );
   });
 }
 
-async function maybeConfirm(spec: ToolSpec, input: ToolArgs, ctx: ExtensionContext): Promise<void> {
+async function runU2Cli(args: string[]): Promise<{
+  text: string;
+  details: ExecutionDetails;
+  isError: boolean;
+}> {
+  let lastMissing: ExecutionDetails | undefined;
+
+  for (const candidate of commandCandidates()) {
+    const result = await runCandidate(candidate, args);
+    if (result.missing && candidate.fallbackOnMissing) {
+      lastMissing = result.details;
+      continue;
+    }
+    if (result.missing) {
+      const payload = errorPayload("U2CLI_NOT_FOUND", `${candidate.file} was not found. ${EXEC_HINT}`);
+      return {
+        text: formatResult(payload),
+        details: { ...result.details, payload },
+        isError: true,
+      };
+    }
+    return result;
+  }
+
+  const payload = errorPayload("U2CLI_NOT_FOUND", `u2cli was not found. ${EXEC_HINT}`);
+  return {
+    text: formatResult(payload),
+    details: lastMissing
+      ? { ...lastMissing, payload }
+      : { command: ["u2cli", ...args], exitCode: null, signal: null, stderr: "", payload },
+    isError: true,
+  };
+}
+
+async function maybeConfirm(spec: ToolSpec, input: ToolInput, ctx: ExtensionContext): Promise<void> {
   if (!spec.confirm) {
     return;
   }
 
-  if (!ctx.hasUI) {
+  if (input.confirmed === true) {
     return;
+  }
+
+  if (!ctx.hasUI) {
+    throw new Error(
+      `${TOOL_PREFIX}${spec.name} changes Android device state. Pass confirmed: true in headless mode.`,
+    );
   }
 
   const accepted = await ctx.ui.confirm(
@@ -277,7 +391,7 @@ export default function u2cliExtension(pi: ExtensionAPI): void {
       parameters: schemaFromSpec(spec),
       async execute(
         toolCallId: string,
-        input: ToolArgs,
+        input: ToolInput,
         _signal: AbortSignal | undefined,
         _onUpdate: unknown,
         ctx: ExtensionContext,
@@ -291,7 +405,7 @@ export default function u2cliExtension(pi: ExtensionAPI): void {
           details: result.details,
         };
 
-        if (result.details.payload?.success === false) {
+        if (result.isError) {
           failedToolCalls.add(toolCallId);
         }
 

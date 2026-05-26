@@ -259,25 +259,37 @@ u2cli pi schema
 
 ## Pi integration
 
-本仓库内置 Pi extension，可作为 Pi package 使用。安装到当前项目：
-
-```bash
-pi install -l git:github.com/Funerr/u2cli@<tag-or-commit>
-```
-
-临时测试：
+本仓库内置 Pi extension，可直接作为 Pi package 临时加载：
 
 ```bash
 pi -e git:github.com/Funerr/u2cli
 ```
 
-Pi package 只注册工具包装器；CLI 本体仍需要安装到运行环境：
+也可以安装到当前项目：
+
+```bash
+pi install -l git:github.com/Funerr/u2cli
+```
+
+固定到 tag 或 commit：
+
+```bash
+pi install -l git:github.com/Funerr/u2cli@<tag-or-commit>
+```
+
+Pi extension 会自动注册 `u2cli_*` 工具，并复用现有 `u2cli` CLI 执行 Android 自动化逻辑。执行顺序是：
+
+1. `U2CLI_BIN`
+2. `PATH` 中的 `u2cli`
+3. `uvx --from git+https://github.com/Funerr/u2cli.git u2cli`
+
+如果要预先安装 CLI 本体：
 
 ```bash
 uv tool install git+https://github.com/Funerr/u2cli
 ```
 
-默认调用 `u2cli`。如果要使用自定义路径，可以设置：
+如果要使用自定义路径：
 
 ```bash
 export U2CLI_BIN=/path/to/u2cli

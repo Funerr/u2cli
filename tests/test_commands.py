@@ -332,7 +332,8 @@ def test_pi_schema(capsys) -> None:
     assert code == 0
     assert payload["command"] == "pi.schema"
     assert payload["data"]["tools"][0]["name"] == "doctor"
-    assert payload["data"]["tools"][6]["optionFlags"] == {"text": "--value"}
+    tools = {tool["name"]: tool for tool in payload["data"]["tools"]}
+    assert tools["element_set_text"]["optionFlags"] == {"text": "--value"}
 
 
 def test_session_info(capsys) -> None:

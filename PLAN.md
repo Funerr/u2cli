@@ -1,5 +1,11 @@
 # u2cli 计划
 
+> SDD 迁移说明：本文件保留为历史路线和早期设计材料。后续涉及需求、设计、任务、验收和兼容性的改动，应以 `docs/sdd/` 为规范源：
+>
+> - `docs/sdd/README.md`
+> - `docs/sdd/u2cli-core/`
+> - `docs/sdd/agent-device-alignment/`
+
 ## 目标
 
 基于 `uiautomator2` 做一个面向 Agent 的 Android CLI。
@@ -248,6 +254,15 @@ Toast 是短时信号，命令行为必须显式、可预期。
 - `INTERNAL_ERROR`
 
 ## 实施计划
+
+### PRD agent-device alignment implementation
+
+- 已新增顶层 agent-style 命令：`connect/disconnect/connection/apps/appstate/open/close/back/home/app-switcher/rotate/screenshot/snapshot/click/press/longpress/swipe/scroll/fill/type/focus/get/find/is/wait/alert/clipboard/keyboard/reinstall/install-from-source/batch`。
+- 已新增 session hydrate：成功命令在有 serial 时写 `${U2CLI_SESSION_PATH}` 或平台默认 session；未传 `--serial` 时自动读取 session；`session clear` 清理。
+- 已新增 snapshot ref cache：compact 节点输出 `ref: "eN"`；完整 `refMap` 写入 session；`@eN` 支持 bounds fast path 与 cached text。
+- 已新增 selector target 解析：`text=...`、`id=...`、`testid=...`、`class=...`、`desc=...`、裸文本和 `@eN`。
+- 已补齐诊断字段和错误码：`SNAPSHOT_REF_NOT_FOUND`、`SNAPSHOT_REF_INVALID`、`SESSION_STALE`、`ALERT_NOT_FOUND`、`BATCH_STEP_FAILED`。
+- 已更新 Pi schema 和 extension，使 Pi 可调用新的低 token 顶层命令。
 
 ### Phase 1：基于 CLI-Anything 建立 CLI 骨架
 

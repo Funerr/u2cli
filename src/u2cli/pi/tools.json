@@ -31,7 +31,124 @@
       "label": "u2cli screen dump",
       "description": "Dump the selected Android device UI hierarchy.",
       "command": ["screen", "dump"],
-      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "compact": "boolean?"}
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "compact": "boolean?",
+        "backend": "string?",
+        "helperApk": "string?",
+        "helperInstallPolicy": "string?",
+        "snapshotJar": "string?",
+        "waitForIdleTimeoutMs": "integer?",
+        "snapshotTimeoutMs": "integer?",
+        "maxDepth": "integer?",
+        "maxNodes": "integer?"
+      }
+    },
+    {
+      "name": "snapshot",
+      "label": "u2cli snapshot",
+      "description": "Capture an agent-style compact snapshot and refresh local refs.",
+      "command": ["snapshot"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "interactive": "boolean?", "compact": "boolean?", "full": "boolean?"}
+    },
+    {
+      "name": "click",
+      "label": "u2cli click",
+      "description": "Click a coordinate, selector target, or @eN snapshot ref.",
+      "command": ["click"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "target": "string",
+        "doubleTap": "boolean?",
+        "holdMs": "integer?",
+        "count": "integer?",
+        "intervalMs": "integer?",
+        "jitterPx": "integer?",
+        "confirmed": "boolean?"
+      },
+      "positionals": ["target"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "fill",
+      "label": "u2cli fill",
+      "description": "Focus a selector target or @eN ref and type text.",
+      "command": ["fill"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "target": "string",
+        "text": "string",
+        "delayMs": "integer?",
+        "confirmed": "boolean?"
+      },
+      "positionals": ["target", "text"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "get",
+      "label": "u2cli get",
+      "description": "Read text, attrs, or bounds from a selector target or @eN ref.",
+      "command": ["get"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "attr": "string", "target": "string"},
+      "positionals": ["attr", "target"]
+    },
+    {
+      "name": "wait",
+      "label": "u2cli wait",
+      "description": "Wait for a selector kind/value and return structured diagnostics.",
+      "command": ["wait"],
+      "inputSchema": {"serial": "string?", "kind": "string", "value": "string", "waitTimeoutMs": "integer"},
+      "optionFlags": {"waitTimeoutMs": "--timeout-ms"},
+      "positionals": ["kind", "value", "waitTimeoutMs"]
+    },
+    {
+      "name": "batch",
+      "label": "u2cli batch",
+      "description": "Run multiple agent-style u2cli steps serially.",
+      "command": ["batch"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "steps": "string", "out": "string?", "confirmed": "boolean?"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "install_from_source",
+      "label": "u2cli install-from-source",
+      "description": "Install a local APK using the agent-style source command.",
+      "command": ["install-from-source"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "source": "string", "confirmed": "boolean?"},
+      "positionals": ["source"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "back",
+      "label": "u2cli back",
+      "description": "Press Android back.",
+      "command": ["back"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "confirmed": "boolean?"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "home",
+      "label": "u2cli home",
+      "description": "Press Android home.",
+      "command": ["home"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "confirmed": "boolean?"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "appstate",
+      "label": "u2cli appstate",
+      "description": "Return the current foreground Android app using the agent-style surface.",
+      "command": ["appstate"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
     },
     {
       "name": "screen_screenshot",

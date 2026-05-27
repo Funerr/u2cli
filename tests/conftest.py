@@ -10,6 +10,11 @@ from typer.testing import CliRunner
 import u2cli.cli as cli_module
 
 
+@pytest.fixture(autouse=True)
+def isolated_session(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setenv("U2CLI_SESSION_PATH", str(tmp_path / "session.json"))
+
+
 class FakeElement:
     def __init__(self, text: str = "Login", resource_id: str = "com.example:id/login") -> None:
         self.text_value = text
@@ -111,6 +116,7 @@ class FakeDevice:
         self.orientation = "natural"
         self.screen_awake = True
         self.unlocked = False
+        self.last_shell_output = "ok"
 
     def __call__(self, **kwargs: Any) -> FakeElement:
         if kwargs.get("text") == "missing":
@@ -121,6 +127,14 @@ class FakeDevice:
             many = FakeElement()
             many.count = 2
             return many
+        if kwargs.get("text") is not None and kwargs.get("text") != self.element.text_value:
+            missing = FakeElement()
+            missing.count = 0
+            return missing
+        if kwargs.get("resourceId") is not None and kwargs.get("resourceId") != self.element.resource_id:
+            missing = FakeElement()
+            missing.count = 0
+            return missing
         return self.element
 
     def xpath(self, value: str) -> FakeElement:
@@ -190,10 +204,12 @@ class FakeDevice:
 
     def shell(self, command: str) -> Any:
         self.shell_commands.append(command)
+        output = self.last_shell_output
 
         class Result:
-            output = "ok"
+            pass
 
+        Result.output = output
         return Result()
 
     def push(self, local: str, remote: str) -> None:
@@ -245,12 +261,25 @@ def fake_device(monkeypatch: pytest.MonkeyPatch) -> FakeDevice:
     monkeypatch.setattr("u2cli.app.commands.connect_device", lambda serial, timeout_ms: device)
     monkeypatch.setattr("u2cli.screen.commands.connect_device", lambda serial, timeout_ms: device)
     monkeypatch.setattr("u2cli.screen.dump.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr(
+        "u2cli.screen.dump.capture_snapshot",
+        lambda fake, serial, timeout_ms, options=None: type(
+            "Capture",
+            (),
+            {
+                "xml": fake.dump_hierarchy(),
+                "backend": "uiautomator2",
+                "metadata": {"backend": "uiautomator2"},
+            },
+        )(),
+    )
     monkeypatch.setattr("u2cli.screen.screenshot.connect_device", lambda serial, timeout_ms: device)
     monkeypatch.setattr("u2cli.screen.size.connect_device", lambda serial, timeout_ms: device)
     monkeypatch.setattr("u2cli.element.query.connect_device", lambda serial, timeout_ms: device)
     monkeypatch.setattr("u2cli.element.action.connect_device", lambda serial, timeout_ms: device)
     monkeypatch.setattr("u2cli.input.commands.connect_device", lambda serial, timeout_ms: device)
     monkeypatch.setattr("u2cli.toast.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("u2cli.toast.commands.resolve_snapshot_helper", lambda path: None)
     monkeypatch.setattr("u2cli.watcher.commands.connect_device", lambda serial, timeout_ms: device)
     return device
 

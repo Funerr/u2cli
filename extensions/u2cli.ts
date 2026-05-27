@@ -27,6 +27,7 @@ type ToolSpec = {
   command: string[];
   inputSchema: Record<string, `${SchemaType}${"?" | ""}`>;
   optionFlags?: Record<string, string>;
+  positionals?: string[];
   confirm?: boolean;
 };
 
@@ -166,6 +167,24 @@ function buildArgs(spec: ToolSpec, input: ToolInput): string[] {
 
   args.push(...spec.command);
 
+  const positionalFields = new Set(spec.positionals ?? []);
+  for (const field of spec.positionals ?? []) {
+    const encodedType = spec.inputSchema[field];
+    const optional = encodedType?.endsWith("?") ?? false;
+    const value = input[field];
+    if (value === undefined) {
+      if (!optional) {
+        throw new Error(`Missing required u2cli positional argument: ${field}`);
+      }
+      continue;
+    }
+    if (encodedType?.replace("?", "") === "point") {
+      args.push(pointValue(field, value));
+    } else {
+      args.push(String(value));
+    }
+  }
+
   for (const [field, value] of Object.entries(input.selector ?? {}) as [keyof Selector, string | number][]) {
     if (value !== undefined) {
       args.push(selectorFlags[field], String(value));
@@ -173,7 +192,13 @@ function buildArgs(spec: ToolSpec, input: ToolInput): string[] {
   }
 
   for (const [field, encodedType] of Object.entries(spec.inputSchema)) {
-    if (field === "serial" || field === "timeoutMs" || field === "selector" || field === "confirmed") {
+    if (
+      field === "serial" ||
+      field === "timeoutMs" ||
+      field === "selector" ||
+      field === "confirmed" ||
+      positionalFields.has(field)
+    ) {
       continue;
     }
 

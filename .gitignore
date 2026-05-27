@@ -6,3 +6,17 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+artifacts/
+android-snapshot-helper/debug.keystore
+android-snapshot-jar/build/
+android-snapshot-helper/build/
+!android-snapshot-jar/dist/
+!android-snapshot-jar/dist/.gitkeep
+!android-snapshot-jar/dist/*.jar
+!android-snapshot-jar/dist/*.jar.sha256
+!android-snapshot-jar/dist/*.manifest.json
+!android-snapshot-helper/dist/
+!android-snapshot-helper/dist/.gitkeep
+!android-snapshot-helper/dist/*.apk
+!android-snapshot-helper/dist/*.apk.sha256
+!android-snapshot-helper/dist/*.apk.manifest.json

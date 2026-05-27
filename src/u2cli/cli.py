@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import sys
+from contextlib import redirect_stdout
 from collections.abc import Callable
 from typing import Any
+from typing import cast
 
 import click
 import typer
 
 from u2cli.app import commands as app_commands
+from u2cli.agent import alert as agent_alert
+from u2cli.agent import commands as agent_commands
 from u2cli.context import CommandContext, DEFAULT_MUTATION_TIMEOUT_MS, DEFAULT_TIMEOUT_MS
 from u2cli.device import commands as device_commands
 from u2cli.device import health
@@ -23,7 +27,13 @@ from u2cli.screen import commands as screen_commands
 from u2cli.screen import dump as screen_dump
 from u2cli.screen import screenshot as screen_screenshot
 from u2cli.screen import size as screen_size
+from u2cli.screen.snapshot_backend import (
+    SnapshotBackendName,
+    SnapshotBackendOptions,
+    SnapshotHelperInstallPolicy,
+)
 from u2cli.session import commands as session_commands
+from u2cli.session.store import mark_stale, read_session, update_session
 from u2cli.toast import commands as toast_commands
 from u2cli.watcher import commands as watcher_commands
 
@@ -75,7 +85,8 @@ def global_options(
 def _emit(command: str, runner: Callable[[], Any]) -> None:
     global _exit_code
     try:
-        value = runner()
+        with redirect_stdout(sys.stderr):
+            value = runner()
         artifacts: list[dict[str, Any]] = []
         data = value
         if (
@@ -93,9 +104,17 @@ def _emit(command: str, runner: Callable[[], Any]) -> None:
             artifacts=artifacts,
         )
         print(result.to_json())
+        if _ctx.serial:
+            update_session(serial=_ctx.serial, timeout_ms=_ctx.timeout_ms)
         _exit_code = 0
     except BaseException as exc:
         error = normalize_exception(exc)
+        if _ctx.serial and error.code in {
+            ErrorCode.DEVICE_NOT_FOUND,
+            ErrorCode.DEVICE_OFFLINE,
+            ErrorCode.U2_CONNECT_FAILED,
+        }:
+            mark_stale(_ctx.serial)
         result = CommandResult.failed(
             command=command,
             serial=_ctx.serial,
@@ -201,6 +220,12 @@ def _extract_global_args(argv: list[str]) -> tuple[list[str], CommandContext]:
         else:
             passthrough.append(arg)
             i += 1
+    if serial is None:
+        state = read_session()
+        if not state.stale:
+            serial = state.serial
+            if not timeout_ms_explicit and state.timeout_ms:
+                timeout_ms = state.timeout_ms
     return passthrough, CommandContext.start(
         json_output=json_output,
         serial=serial,
@@ -231,6 +256,57 @@ def _require_explicit_timeout(command: str) -> None:
         )
 
 
+def _emit_batch(command: str, runner: Callable[[], Any]) -> None:
+    global _exit_code
+    try:
+        with redirect_stdout(sys.stderr):
+            value = runner()
+        artifacts: list[dict[str, Any]] = []
+        data = value
+        if (
+            isinstance(value, tuple)
+            and len(value) == 2
+            and isinstance(value[1], list)
+            and isinstance(value[0], dict)
+        ):
+            data, artifacts = value
+        import json
+
+        payload = {
+            "success": True,
+            "command": command,
+            "serial": _ctx.serial,
+            "via": "uiautomator2",
+            **data,
+            "artifacts": artifacts,
+            "durationMs": _ctx.elapsed_ms(),
+        }
+        print(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+        if _ctx.serial:
+            update_session(serial=_ctx.serial, timeout_ms=_ctx.timeout_ms)
+        _exit_code = 0
+    except U2CliError as exc:
+        if exc.code == ErrorCode.BATCH_STEP_FAILED:
+            artifacts = exc.details.get("artifacts", [])
+            payload = {
+                "success": False,
+                "command": command,
+                "serial": _ctx.serial,
+                "via": "uiautomator2",
+                **exc.details,
+                "error": {"code": exc.code.value, "message": exc.message},
+                "artifacts": artifacts,
+                "durationMs": _ctx.elapsed_ms(),
+            }
+            import json
+
+            print(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+            _exit_code = exit_code_for(exc.code)
+            return
+        caught = exc
+        _emit(command, lambda: (_ for _ in ()).throw(caught))
+
+
 @app.command()
 def doctor() -> None:
     """Run local environment and optional target-device health checks."""
@@ -241,6 +317,319 @@ def doctor() -> None:
 def devices() -> None:
     """List attached Android devices."""
     _emit("devices", health.devices_data)
+
+
+@app.command("connect")
+def agent_connect(address: str | None = typer.Option(None, "--address")) -> None:
+    _emit("connect", lambda: agent_commands.connect(_ctx, serial=_ctx.serial, address=address))
+
+
+@app.command("disconnect")
+def agent_disconnect() -> None:
+    _emit("disconnect", lambda: agent_commands.disconnect(_ctx))
+
+
+@app.command("connection")
+def agent_connection(action: str = typer.Argument("status")) -> None:
+    if action != "status":
+        raise U2CliError(
+            ErrorCode.INVALID_ARGUMENT,
+            "connection action must be status",
+            {"action": action},
+        )
+    _emit("connection.status", lambda: agent_commands.connection_status(_ctx))
+
+
+@app.command("apps")
+def agent_apps(kind: str = typer.Option("all", "--kind")) -> None:
+    _emit("apps", lambda: agent_commands.apps(_ctx, kind))
+
+
+@app.command("appstate")
+def agent_appstate() -> None:
+    _emit("appstate", lambda: agent_commands.appstate(_ctx))
+
+
+@app.command("open")
+def agent_open(
+    package: str = typer.Argument(...),
+    activity: str | None = typer.Option(None, "--activity"),
+    relaunch: bool = typer.Option(False, "--relaunch"),
+) -> None:
+    _emit("open", lambda: agent_commands.open_app(_mutation_ctx(), package, activity, relaunch))
+
+
+@app.command("close")
+def agent_close(
+    package: str | None = typer.Argument(None),
+    shutdown: bool = typer.Option(False, "--shutdown"),
+) -> None:
+    _emit("close", lambda: agent_commands.close_app(_mutation_ctx(), package, shutdown))
+
+
+@app.command("back")
+def agent_back() -> None:
+    _emit("back", lambda: agent_commands.back(_mutation_ctx()))
+
+
+@app.command("home")
+def agent_home() -> None:
+    _emit("home", lambda: agent_commands.home(_mutation_ctx()))
+
+
+@app.command("app-switcher")
+def agent_app_switcher() -> None:
+    _emit("app-switcher", lambda: agent_commands.app_switcher(_mutation_ctx()))
+
+
+@app.command("rotate")
+def agent_rotate(value: str = typer.Argument(...)) -> None:
+    _emit("rotate", lambda: agent_commands.rotate(_mutation_ctx(), value))
+
+
+@app.command("screenshot")
+def agent_screenshot(out: str | None = typer.Option(None, "--out")) -> None:
+    _emit("screenshot", lambda: agent_commands.screenshot(_ctx, out))
+
+
+@app.command("snapshot")
+def agent_snapshot(
+    interactive: bool = typer.Option(False, "-i", "--interactive"),
+    compact: bool = typer.Option(False, "--compact"),
+    full: bool = typer.Option(False, "--full"),
+    target_text: str | None = typer.Option(None, "--target-text"),
+) -> None:
+    _ = compact
+    _emit(
+        "snapshot",
+        lambda: agent_commands.snapshot(_ctx, interactive=interactive, full=full, target_text=target_text),
+    )
+
+
+@app.command("click")
+def agent_click(
+    target: str = typer.Argument(...),
+    y: int | None = typer.Argument(None),
+    double_tap: bool = typer.Option(False, "--double-tap"),
+    hold_ms: int | None = typer.Option(None, "--hold-ms"),
+    count: int = typer.Option(1, "--count"),
+    interval_ms: int = typer.Option(0, "--interval-ms"),
+    jitter_px: int = typer.Option(0, "--jitter-px"),
+) -> None:
+    if y is not None:
+        _emit(
+            "click",
+            lambda: agent_commands.click_percent(
+                _mutation_ctx(),
+                int(target),
+                y,
+                double_tap=double_tap,
+                hold_ms=hold_ms,
+                count=count,
+                interval_ms=interval_ms,
+                jitter_px=jitter_px,
+            ),
+        )
+        return
+    resolved_target = target
+    _emit(
+        "click",
+        lambda: agent_commands.click(
+            _mutation_ctx(),
+            resolved_target,
+            double_tap=double_tap,
+            hold_ms=hold_ms,
+            count=count,
+            interval_ms=interval_ms,
+            jitter_px=jitter_px,
+        ),
+    )
+
+
+@app.command("press")
+def agent_press(
+    target: str = typer.Argument(...),
+    y: int | None = typer.Argument(None),
+    double_tap: bool = typer.Option(False, "--double-tap"),
+    hold_ms: int | None = typer.Option(None, "--hold-ms"),
+    count: int = typer.Option(1, "--count"),
+    interval_ms: int = typer.Option(0, "--interval-ms"),
+    jitter_px: int = typer.Option(0, "--jitter-px"),
+) -> None:
+    if y is not None:
+        _emit(
+            "press",
+            lambda: agent_commands.click_percent(
+                _mutation_ctx(),
+                int(target),
+                y,
+                double_tap=double_tap,
+                hold_ms=hold_ms,
+                count=count,
+                interval_ms=interval_ms,
+                jitter_px=jitter_px,
+            ),
+        )
+        return
+    resolved_target = target
+    _emit(
+        "press",
+        lambda: agent_commands.press(
+            _mutation_ctx(),
+            resolved_target,
+            double_tap=double_tap,
+            hold_ms=hold_ms,
+            count=count,
+            interval_ms=interval_ms,
+            jitter_px=jitter_px,
+        ),
+    )
+
+
+@app.command("longpress")
+def agent_longpress(
+    target: str = typer.Argument(...),
+    duration_ms: int = typer.Option(800, "--duration-ms"),
+) -> None:
+    _emit("longpress", lambda: agent_commands.longpress(_mutation_ctx(), target, duration_ms))
+
+
+@app.command("swipe")
+def agent_swipe(
+    from_x: int = typer.Argument(...),
+    from_y: int = typer.Argument(...),
+    to_x: int = typer.Argument(...),
+    to_y: int = typer.Argument(...),
+    duration_ms: int = typer.Option(400, "--duration-ms"),
+    count: int = typer.Option(1, "--count"),
+    interval_ms: int = typer.Option(0, "--interval-ms"),
+) -> None:
+    _emit(
+        "swipe",
+        lambda: agent_commands.swipe(
+            _mutation_ctx(),
+            from_x,
+            from_y,
+            to_x,
+            to_y,
+            duration_ms,
+            count,
+            interval_ms,
+        ),
+    )
+
+
+@app.command("scroll")
+def agent_scroll(
+    direction: str = typer.Argument("down"),
+    pixels: int | None = typer.Option(None, "--pixels"),
+) -> None:
+    _emit("scroll", lambda: agent_commands.scroll(_mutation_ctx(), direction, pixels))
+
+
+@app.command("fill")
+def agent_fill(
+    target: str = typer.Argument(...),
+    text: str = typer.Argument(...),
+    delay_ms: int = typer.Option(0, "--delay-ms"),
+) -> None:
+    _emit("fill", lambda: agent_commands.fill(_mutation_ctx(), target, text, delay_ms))
+
+
+@app.command("type")
+def agent_type(text: str = typer.Argument(...)) -> None:
+    _emit("type", lambda: agent_commands.type_text(_mutation_ctx(), text))
+
+
+@app.command("focus")
+def agent_focus(target: str = typer.Argument(...)) -> None:
+    _emit("focus", lambda: agent_commands.focus(_mutation_ctx(), target))
+
+
+@app.command("get")
+def agent_get(attr: str = typer.Argument(...), target: str = typer.Argument(...)) -> None:
+    _emit("get", lambda: agent_commands.get_attr(_ctx, attr, target))
+
+
+@app.command("find")
+def agent_find(
+    selector: str = typer.Argument(...),
+    action: str | None = typer.Argument(None),
+    action_value: str | None = typer.Argument(None),
+    first: bool = typer.Option(False, "--first"),
+    last: bool = typer.Option(False, "--last"),
+) -> None:
+    _emit(
+        "find",
+        lambda: agent_commands.find(_mutation_ctx(), selector, action, action_value, first, last),
+    )
+
+
+@app.command("is")
+def agent_is(state: str = typer.Argument(...), selector: str = typer.Argument(...)) -> None:
+    _emit("is", lambda: agent_commands.is_state(_ctx, state, selector))
+
+
+@app.command("wait")
+def agent_wait(
+    kind: str = typer.Argument(...),
+    value: str = typer.Argument(...),
+    timeout_ms: int = typer.Argument(...),
+) -> None:
+    _emit("wait", lambda: agent_commands.wait(_ctx, kind, value, timeout_ms))
+
+
+@app.command("alert")
+def agent_alert_command(
+    action: str = typer.Argument(...),
+    timeout_ms: int = typer.Option(3000, "--timeout-ms"),
+) -> None:
+    effective_timeout_ms = _ctx.timeout_ms if _ctx.timeout_ms_explicit else timeout_ms
+    if action == "get":
+        _emit("alert", lambda: agent_alert.get(_ctx))
+    elif action == "wait":
+        _emit("alert", lambda: agent_alert.wait(_ctx, effective_timeout_ms))
+    elif action == "accept":
+        _emit("alert", lambda: agent_alert.accept(_mutation_ctx(), effective_timeout_ms))
+    elif action == "dismiss":
+        _emit("alert", lambda: agent_alert.dismiss(_mutation_ctx(), effective_timeout_ms))
+    else:
+        raise U2CliError(
+            ErrorCode.INVALID_ARGUMENT,
+            "alert action must be get, wait, accept, or dismiss",
+            {"action": action},
+        )
+
+
+@app.command("clipboard")
+def agent_clipboard(action: str = typer.Argument(...), text: str | None = typer.Argument(None)) -> None:
+    _emit("clipboard", lambda: agent_commands.clipboard(_mutation_ctx(), action, text))
+
+
+@app.command("keyboard")
+def agent_keyboard(action: str = typer.Argument(...)) -> None:
+    _emit("keyboard", lambda: agent_commands.keyboard(_mutation_ctx(), action))
+
+
+@app.command("reinstall")
+def agent_reinstall(
+    package: str = typer.Option(..., "--app"),
+    path: str = typer.Option(..., "--path"),
+) -> None:
+    _emit("reinstall", lambda: agent_commands.reinstall(_mutation_ctx(), package, path))
+
+
+@app.command("install-from-source")
+def agent_install_from_source(source: str = typer.Argument(...)) -> None:
+    _emit("install-from-source", lambda: agent_commands.install_from_source(_mutation_ctx(), source))
+
+
+@app.command("batch")
+def agent_batch(
+    steps: str = typer.Option(..., "--steps"),
+    out: str | None = typer.Option(None, "--out"),
+) -> None:
+    _emit_batch("batch", lambda: agent_commands.batch(_mutation_ctx(), steps, out))
 
 
 @device_app.command("info")
@@ -393,8 +782,40 @@ def app_intent(
 
 
 @screen_app.command("dump")
-def screen_dump_command(compact: bool = typer.Option(False, "--compact")) -> None:
-    _emit("screen.dump", lambda: screen_dump.dump(_ctx, compact))
+def screen_dump_command(
+    compact: bool = typer.Option(False, "--compact"),
+    backend: str = typer.Option("auto", "--backend"),
+    helper_apk: str | None = typer.Option(None, "--helper-apk"),
+    helper_install_policy: str = typer.Option("missing-or-outdated", "--helper-install-policy"),
+    snapshot_jar: str | None = typer.Option(None, "--snapshot-jar"),
+    wait_for_idle_timeout_ms: int = typer.Option(500, "--wait-for-idle-timeout-ms"),
+    snapshot_timeout_ms: int = typer.Option(8000, "--snapshot-timeout-ms"),
+    max_depth: int = typer.Option(128, "--max-depth"),
+    max_nodes: int = typer.Option(5000, "--max-nodes"),
+) -> None:
+    if backend not in {"auto", "helper", "apk", "jar", "adb", "uiautomator2"}:
+        raise U2CliError(
+            ErrorCode.INVALID_ARGUMENT,
+            "--backend must be one of auto, helper, apk, jar, adb, or uiautomator2",
+            {"backend": backend},
+        )
+    if helper_install_policy not in {"missing-or-outdated", "always", "never"}:
+        raise U2CliError(
+            ErrorCode.INVALID_ARGUMENT,
+            "--helper-install-policy must be one of missing-or-outdated, always, or never",
+            {"helperInstallPolicy": helper_install_policy},
+        )
+    options = SnapshotBackendOptions(
+        backend=cast(SnapshotBackendName, backend),
+        helper_apk=helper_apk,
+        helper_install_policy=cast(SnapshotHelperInstallPolicy, helper_install_policy),
+        snapshot_jar=snapshot_jar,
+        wait_for_idle_timeout_ms=wait_for_idle_timeout_ms,
+        snapshot_timeout_ms=snapshot_timeout_ms,
+        max_depth=max_depth,
+        max_nodes=max_nodes,
+    )
+    _emit("screen.dump", lambda: screen_dump.dump(_ctx, compact, options))
 
 
 @screen_app.command("screenshot")
@@ -908,6 +1329,11 @@ def session_info() -> None:
 @session_app.command("sidecar-start")
 def session_sidecar_start() -> None:
     _emit("session.sidecar-start", lambda: session_commands.sidecar_start(_ctx))
+
+
+@session_app.command("clear")
+def session_clear() -> None:
+    _emit("session.clear", lambda: session_commands.clear(_ctx))
 
 
 def main(argv: list[str] | None = None) -> None:

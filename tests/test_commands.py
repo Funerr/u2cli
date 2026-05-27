@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from pathlib import Path
 
 from typer.testing import CliRunner
 
@@ -29,6 +30,12 @@ def run_main(args: list[str], capsys) -> tuple[int, dict]:
         code = 0
     captured = capsys.readouterr()
     return code, json.loads(captured.out)
+
+
+def session_file(tmp_path: Path, monkeypatch) -> Path:  # type: ignore[no-untyped-def]
+    path = tmp_path / "session.json"
+    monkeypatch.setenv("U2CLI_SESSION_PATH", str(path))
+    return path
 
 
 def test_doctor_json(monkeypatch, capsys) -> None:
@@ -64,6 +71,7 @@ def test_screen_dump_compact(fake_device, capsys) -> None:
 
     assert code == 0
     assert payload["command"] == "screen.dump"
+    assert payload["data"]["nodes"][0]["ref"] == "e0"
     assert payload["data"]["nodes"][0]["text"] == "Login"
 
 
@@ -305,6 +313,86 @@ def test_toast_timeout(fake_device, capsys) -> None:
     assert payload["error"]["code"] == "TOAST_TIMEOUT"
 
 
+def test_toast_get_uses_snapshot_helper(fake_device, monkeypatch, tmp_path, capsys) -> None:
+    from u2cli.screen.snapshot_backend import SnapshotHelperArtifact
+
+    apk = tmp_path / "helper.apk"
+    apk.write_bytes(b"helper")
+    artifact = SnapshotHelperArtifact(
+        str(apk),
+        {
+            "packageName": "com.callstack.ata.snapshothelper",
+            "versionCode": 1,
+            "instrumentationRunner": "com.callstack.ata.snapshothelper/.SnapshotInstrumentation",
+            "installArgs": ["install", "-r", "-t"],
+        },
+    )
+    monkeypatch.setattr("u2cli.toast.commands.resolve_snapshot_helper", lambda path: artifact)
+
+    def capture_helper(serial, artifact, options, adb_runner=None, action="snapshot"):
+        assert action == "toast-get"
+        return type(
+            "Capture",
+            (),
+            {
+                "metadata": {
+                    "toastCapture": {
+                        "status": "captured",
+                        "latest": {"text": "Saved", "capturedAtMs": 1710000000000},
+                    }
+                }
+            },
+        )()
+
+    monkeypatch.setattr("u2cli.toast.commands.capture_with_helper", capture_helper)
+
+    code, payload = run_main(
+        ["--serial", "emulator-5554", "--timeout-ms", "1000", "toast", "get"],
+        capsys,
+    )
+
+    assert code == 0
+    assert payload["data"]["message"] == "Saved"
+    assert payload["data"]["via"] == "android-snapshot-helper"
+
+
+def test_toast_get_polls_snapshot_helper_until_captured(
+    fake_device,
+    monkeypatch,
+    tmp_path,
+    capsys,
+) -> None:
+    from u2cli.screen.snapshot_backend import SnapshotHelperArtifact
+
+    apk = tmp_path / "helper.apk"
+    apk.write_bytes(b"helper")
+    artifact = SnapshotHelperArtifact(str(apk), {"versionCode": 1})
+    monkeypatch.setattr("u2cli.toast.commands.resolve_snapshot_helper", lambda path: artifact)
+    captures = 0
+
+    def capture_helper(serial, artifact, options, adb_runner=None, action="snapshot"):
+        nonlocal captures
+        captures += 1
+        latest = {"text": "Saved"} if captures == 2 else None
+        return type(
+            "Capture",
+            (),
+            {"metadata": {"toastCapture": {"status": "captured" if latest else "empty", "latest": latest}}},
+        )()
+
+    monkeypatch.setattr("u2cli.toast.commands.capture_with_helper", capture_helper)
+    monkeypatch.setattr("u2cli.toast.commands.time.sleep", lambda seconds: None)
+
+    code, payload = run_main(
+        ["--serial", "emulator-5554", "--timeout-ms", "1000", "toast", "get"],
+        capsys,
+    )
+
+    assert code == 0
+    assert payload["data"]["message"] == "Saved"
+    assert captures == 2
+
+
 def test_screenshot_artifact(fake_device, tmp_path, capsys) -> None:
     out = tmp_path / "screen.png"
 
@@ -342,3 +430,186 @@ def test_session_info(capsys) -> None:
     assert code == 0
     assert payload["command"] == "session.info"
     assert payload["data"]["mode"] == "per-command"
+
+
+def test_connect_writes_session_and_hydrates_serial(
+    fake_device,
+    monkeypatch,
+    tmp_path,
+    capsys,
+) -> None:
+    session_file(tmp_path, monkeypatch)
+
+    code, payload = run_main(["--serial", "emulator-5554", "connect"], capsys)
+    assert code == 0
+    assert payload["data"]["serial"] == "emulator-5554"
+
+    code, payload = run_main(["connect", "--serial", "emulator-5554"], capsys)
+    assert code == 0
+    assert payload["data"]["serial"] == "emulator-5554"
+
+    code, payload = run_main(["appstate"], capsys)
+    assert code == 0
+    assert payload["serial"] == "emulator-5554"
+    assert payload["data"]["package"] == "com.example"
+
+
+def test_snapshot_writes_ref_cache_and_click_fill_get_ref(
+    fake_device,
+    monkeypatch,
+    tmp_path,
+    capsys,
+) -> None:
+    session_file(tmp_path, monkeypatch)
+
+    code, payload = run_main(["--serial", "emulator-5554", "snapshot", "-i"], capsys)
+    assert code == 0
+    assert payload["command"] == "snapshot"
+    assert payload["data"]["nodes"][0]["ref"] == "e0"
+    assert "refMap" not in payload["data"]
+
+    code, payload = run_main(["click", "@e0"], capsys)
+    assert code == 0
+    assert payload["data"]["via"] == "bounds"
+    assert fake_device.taps[-1] == (380, 1260)
+
+    code, payload = run_main(["fill", "@e0", "qa@example.com"], capsys)
+    assert code == 0
+    assert payload["data"]["filled"] is True
+    assert fake_device.sent_text[-1] == "qa@example.com"
+
+    code, payload = run_main(["get", "text", "@e0"], capsys)
+    assert code == 0
+    assert payload["data"]["cached"] is True
+    assert payload["data"]["text"] == "Login"
+
+    code, payload = run_main(["find", "text=Login"], capsys)
+    assert code == 0
+    assert payload["data"]["cached"] is True
+    assert payload["data"]["matchedCount"] == 1
+
+    code, payload = run_main(["wait", "text", "Login", "1000"], capsys)
+    assert code == 0
+    assert payload["data"]["cached"] is True
+
+    code, payload = run_main(["click", "@e0", "--double-tap", "--count", "2", "--jitter-px", "4"], capsys)
+    assert code == 0
+    assert payload["data"]["tapCount"] == 4
+    assert len(fake_device.taps) >= 5
+
+    code, payload = run_main(["click", "@e0", "--hold-ms", "800"], capsys)
+    assert code == 0
+    assert payload["data"]["held"] is True
+    assert fake_device.swipes[-1][4] == 0.8
+
+
+def test_snapshot_target_text_reports_compact_matches(fake_device, capsys) -> None:
+    code, payload = run_main(
+        ["--serial", "emulator-5554", "snapshot", "-i", "--target-text", "Login"],
+        capsys,
+    )
+
+    assert code == 0
+    assert payload["data"]["targetText"]["state"] == "found"
+    assert payload["data"]["targetText"]["matchedCount"] == 1
+    assert payload["data"]["targetText"]["refs"] == ["@e0"]
+
+    code, payload = run_main(["--serial", "emulator-5554", "snapshot", "--target-text", ""], capsys)
+    assert code == 64
+    assert payload["error"]["code"] == "INVALID_ARGUMENT"
+
+
+def test_top_level_selector_commands_and_wait_diagnostics(fake_device, capsys) -> None:
+    code, payload = run_main(["--serial", "emulator-5554", "click", "text=Login"], capsys)
+    assert code == 0
+    assert payload["command"] == "click"
+    assert fake_device.element.clicked is True
+
+    code, payload = run_main(["--serial", "emulator-5554", "wait", "text", "Login", "1000"], capsys)
+    assert code == 0
+    assert payload["data"]["attempts"] >= 1
+    assert payload["data"]["matchedCount"] == 1
+    assert payload["data"]["selectedIndex"] == 0
+
+    code, payload = run_main(["--serial", "emulator-5554", "is", "enabled", "text=Login"], capsys)
+    assert code == 0
+    assert payload["data"]["result"] is True
+
+
+def test_top_level_click_percent_coordinates(fake_device, capsys) -> None:
+    code, payload = run_main(["--serial", "emulator-5554", "click", "50", "80"], capsys)
+
+    assert code == 0
+    assert payload["data"]["percent"] == [50, 80]
+    assert fake_device.taps[-1] == (540, 1920)
+
+
+def test_find_ambiguous_requires_first_or_last(fake_device, capsys) -> None:
+    code, payload = run_main(["--serial", "emulator-5554", "find", "text=many"], capsys)
+    assert code == 1
+    assert payload["error"]["code"] == "ELEMENT_AMBIGUOUS"
+
+    code, payload = run_main(["--serial", "emulator-5554", "find", "text=many", "--first"], capsys)
+    assert code == 0
+    assert payload["data"]["matchedCount"] == 2
+    assert payload["data"]["selectedIndex"] == 0
+
+
+def test_batch_preserves_successful_steps_on_failure(fake_device, tmp_path, capsys) -> None:
+    steps = json.dumps(
+        [
+            {"command": "back"},
+            {"command": "click", "args": ["text=missing"]},
+            {"command": "home"},
+        ]
+    )
+
+    code, payload = run_main(
+        ["--serial", "emulator-5554", "batch", "--steps", steps, "--out", str(tmp_path / "batch-failed.json")],
+        capsys,
+    )
+
+    assert code == 1
+    assert payload["success"] is False
+    assert payload["error"]["code"] == "BATCH_STEP_FAILED"
+    assert payload["failed"] == 1
+    assert payload["steps"][0]["success"] is True
+    assert payload["steps"][1]["success"] is False
+    assert payload["artifacts"][0]["type"] == "batch-result"
+
+
+def test_alert_accept_finds_candidate(fake_device, capsys) -> None:
+    fake_device.element.text_value = "OK"
+
+    code, payload = run_main(["--serial", "emulator-5554", "alert", "accept"], capsys)
+
+    assert code == 0
+    assert payload["data"]["role"] == "accept"
+    assert payload["data"]["attempts"] >= 1
+    assert payload["data"]["matchedCount"] >= 1
+    assert payload["data"]["candidate"]["text"] == "OK"
+
+
+def test_keyboard_status(fake_device, capsys) -> None:
+    fake_device.last_shell_output = "mInputShown=true\nmCurId=com.example/.Ime\nmServedView=EditText"
+
+    code, payload = run_main(["--serial", "emulator-5554", "keyboard", "status"], capsys)
+
+    assert code == 0
+    assert payload["data"]["shown"] is True
+    assert payload["data"]["currentIme"] == "com.example/.Ime"
+
+
+def test_install_from_source_local_apk(fake_device, tmp_path, capsys) -> None:
+    apk = tmp_path / "app.apk"
+    apk.write_bytes(b"apk")
+
+    code, payload = run_main(
+        ["--serial", "emulator-5554", "install-from-source", str(apk)],
+        capsys,
+    )
+
+    assert code == 0
+    assert payload["command"] == "install-from-source"
+    assert payload["data"]["installed"] is True
+    assert payload["data"]["downloaded"] is False

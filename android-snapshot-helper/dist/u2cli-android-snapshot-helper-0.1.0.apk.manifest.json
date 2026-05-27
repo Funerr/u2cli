@@ -1,0 +1,15 @@
+{
+  "name": "android-snapshot-helper",
+  "version": "0.1.0",
+  "assetName": "u2cli-android-snapshot-helper-0.1.0.apk",
+  "apkUrl": null,
+  "sha256": "31dec8dff77f05bd513327ed972f0e8dea25560dddfaf779d4f869dabee94771",
+  "packageName": "com.callstack.ata.snapshothelper",
+  "versionCode": 1000,
+  "instrumentationRunner": "com.callstack.ata.snapshothelper/.SnapshotInstrumentation",
+  "minSdk": 23,
+  "targetSdk": 36,
+  "outputFormat": "uiautomator-xml",
+  "statusProtocol": "android-snapshot-helper-v1",
+  "installArgs": ["install", "-r", "-t"]
+}

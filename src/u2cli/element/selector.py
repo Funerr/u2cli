@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import shlex
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
@@ -106,6 +107,97 @@ def selector_from_kwargs(
             "Invalid selector",
             {"errors": exc.errors(include_url=False)},
         ) from exc
+
+
+TARGET_KEY_ALIASES = {
+    "text": "text",
+    "text_contains": "text_contains",
+    "text-contains": "text_contains",
+    "contains": "text_contains",
+    "id": "resource_id",
+    "resource-id": "resource_id",
+    "resourceId": "resource_id",
+    "resource_id": "resource_id",
+    "rid": "resource_id",
+    "testid": "resource_id",
+    "test-id": "resource_id",
+    "class": "class_name",
+    "class-name": "class_name",
+    "className": "class_name",
+    "class_name": "class_name",
+    "description": "description",
+    "desc": "description",
+    "content-desc": "description",
+    "description_contains": "description_contains",
+    "description-contains": "description_contains",
+    "desc_contains": "description_contains",
+    "desc-contains": "description_contains",
+    "xpath": "xpath",
+}
+
+
+def parse_target_selector(value: str) -> Selector:
+    target = value.strip()
+    if not target:
+        raise U2CliError(
+            ErrorCode.INVALID_ARGUMENT,
+            "selector target must not be empty",
+            {"target": value},
+        )
+    if target.startswith("@e"):
+        raise U2CliError(
+            ErrorCode.SNAPSHOT_REF_NOT_FOUND,
+            "Snapshot ref must be resolved from session before selector parsing",
+            {"ref": target},
+        )
+    if "=" not in target:
+        return selector_from_kwargs(text=_unquote_target_value(target))
+    key, raw = target.split("=", 1)
+    field = TARGET_KEY_ALIASES.get(key.strip())
+    if field is None:
+        raise U2CliError(
+            ErrorCode.INVALID_ARGUMENT,
+            "Unsupported selector target field",
+            {"field": key.strip(), "target": value},
+        )
+    parsed_value = _unquote_target_value(raw.strip())
+    kwargs: dict[str, Any] = {field: parsed_value}
+    return selector_from_kwargs(**kwargs)
+
+
+def from_target(value: str) -> Selector:
+    target = value.strip()
+    if target.startswith("@e"):
+        from u2cli.session.store import ref_entry
+
+        entry, _ = ref_entry(target)
+        raw = entry.selector or {}
+        try:
+            return selector_from_kwargs(
+                text=raw.get("text"),
+                resource_id=raw.get("resourceId") or raw.get("resource_id"),
+                description=raw.get("description"),
+                class_name=raw.get("className") or raw.get("class_name"),
+            )
+        except U2CliError as exc:
+            raise U2CliError(
+                ErrorCode.SNAPSHOT_REF_INVALID,
+                "Snapshot ref does not contain a valid selector",
+                {"ref": target, "entry": entry.public_dict()},
+            ) from exc
+    return parse_target_selector(value)
+
+
+def _unquote_target_value(value: str) -> str:
+    stripped = value.strip()
+    if len(stripped) >= 2 and stripped[0] == stripped[-1] and stripped[0] in {"'", '"'}:
+        try:
+            parts = shlex.split(stripped)
+        except ValueError:
+            return stripped[1:-1]
+        if len(parts) == 1:
+            return parts[0]
+    return stripped
 
 
 BOUNDS_RE = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")

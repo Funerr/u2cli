@@ -15,6 +15,30 @@ def _watcher_api(device: Any, name: str) -> Any:
     return watcher(name)
 
 
+def _xpath_literal(value: str) -> str:
+    if "'" not in value:
+        return f"'{value}'"
+    if '"' not in value:
+        return f'"{value}"'
+    parts = value.split("'")
+    return "concat(" + ', "\'", '.join(f"'{part}'" for part in parts) + ")"
+
+
+def _text_xpath(text: str) -> str:
+    literal = _xpath_literal(text)
+    return f"//*[@text={literal} or @content-desc={literal}]"
+
+
+def _resource_id_xpath(resource_id: str) -> str:
+    return f"//*[@resource-id={_xpath_literal(resource_id)}]"
+
+
+def _click_xpath(click_text: str | None) -> str | None:
+    if click_text is None:
+        return None
+    return _text_xpath(click_text)
+
+
 def add(
     ctx: CommandContext,
     name: str,
@@ -32,11 +56,14 @@ def add(
     def _run() -> dict[str, Any]:
         api = _watcher_api(device, name)
         if text:
-            api = api.when(text=text)
+            api = api.when(_text_xpath(text))
         if resource_id:
-            api = api.when(resourceId=resource_id)
+            api = api.when(_resource_id_xpath(resource_id))
         if click_text:
-            api.click(text=click_text)
+            click_target = _click_xpath(click_text)
+            if click_target is not None:
+                api = api.when(click_target)
+            api.click()
         else:
             api.click()
         return {

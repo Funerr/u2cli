@@ -28,12 +28,19 @@ u2cli = "u2cli.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/u2cli"]
+artifacts = ["android-snapshot-helper/dist/*", "android-snapshot-jar/dist/*"]
+
+[tool.hatch.build.targets.sdist]
+artifacts = ["android-snapshot-helper/dist/*", "android-snapshot-jar/dist/*"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/u2cli/pi/tools.json" = "u2cli/pi/tools.json"
+"android-snapshot-helper/dist" = "u2cli/android-snapshot-helper"
+"android-snapshot-jar/dist" = "u2cli/android-snapshot-jar"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 markers = [
   "integration: requires a real Android device and U2CLI_TEST_SERIAL",
 ]

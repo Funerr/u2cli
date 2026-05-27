@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from u2cli.element.selector import bounds_to_list, selector_from_kwargs
+from u2cli.element.selector import bounds_to_list, from_target, parse_target_selector, selector_from_kwargs
+from u2cli.session.store import LastSnapshot, SnapshotRef, update_session
 from u2cli.errors import U2CliError
 
 
@@ -31,3 +32,28 @@ def test_xpath_cannot_mix_with_other_fields() -> None:
 def test_bounds_parse() -> None:
     assert bounds_to_list("[1,2][3,4]") == [1, 2, 3, 4]
     assert bounds_to_list("bad") is None
+
+
+def test_parse_target_selector_aliases() -> None:
+    assert parse_target_selector("text=登录").public_dict() == {"text": "登录"}
+    assert parse_target_selector('id="com.example:id/login"').public_dict() == {
+        "resourceId": "com.example:id/login"
+    }
+    assert parse_target_selector("testid=login").public_dict() == {"resourceId": "login"}
+    assert parse_target_selector("desc=Submit").public_dict() == {"description": "Submit"}
+    assert parse_target_selector("Login").public_dict() == {"text": "Login"}
+    assert from_target("text=Login").public_dict() == {"text": "Login"}
+
+
+def test_from_target_resolves_snapshot_ref(monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setenv("U2CLI_SESSION_PATH", str(tmp_path / "session.json"))
+    update_session(
+        serial="emulator-5554",
+        last_snapshot=LastSnapshot(
+            capturedAt="2026-05-26T00:00:00.000Z",
+            serial="emulator-5554",
+            refMap={"@e0": SnapshotRef(selector={"text": "Login"})},
+        ),
+    )
+
+    assert from_target("@e0").public_dict() == {"text": "Login"}

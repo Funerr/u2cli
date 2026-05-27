@@ -1,6 +1,6 @@
 {
-  "name": "u2cli",
-  "description": "Typed wrappers for u2cli Android automation commands.",
+  "name": "android-cli",
+  "description": "Typed wrappers for Android CLI device automation commands.",
   "selectorSchema": {
     "text": "string?",
     "textContains": "string?",
@@ -14,21 +14,21 @@
   "tools": [
     {
       "name": "doctor",
-      "label": "u2cli doctor",
+      "label": "android-cli doctor",
       "description": "Run local environment and optional target-device health checks.",
       "command": ["doctor"],
       "inputSchema": {}
     },
     {
       "name": "devices",
-      "label": "u2cli devices",
+      "label": "android-cli devices",
       "description": "List attached Android devices.",
       "command": ["devices"],
       "inputSchema": {}
     },
     {
       "name": "screen_dump",
-      "label": "u2cli screen dump",
+      "label": "android-cli screen dump",
       "description": "Dump the selected Android device UI hierarchy.",
       "command": ["screen", "dump"],
       "inputSchema": {
@@ -47,14 +47,14 @@
     },
     {
       "name": "snapshot",
-      "label": "u2cli snapshot",
+      "label": "android-cli snapshot",
       "description": "Capture an agent-style compact snapshot and refresh local refs.",
       "command": ["snapshot"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "interactive": "boolean?", "compact": "boolean?", "full": "boolean?"}
     },
     {
       "name": "click",
-      "label": "u2cli click",
+      "label": "android-cli click",
       "description": "Click a coordinate, selector target, or @eN snapshot ref.",
       "command": ["click"],
       "inputSchema": {
@@ -74,7 +74,7 @@
     },
     {
       "name": "fill",
-      "label": "u2cli fill",
+      "label": "android-cli fill",
       "description": "Focus a selector target or @eN ref and type text.",
       "command": ["fill"],
       "inputSchema": {
@@ -91,7 +91,7 @@
     },
     {
       "name": "get",
-      "label": "u2cli get",
+      "label": "android-cli get",
       "description": "Read text, attrs, or bounds from a selector target or @eN ref.",
       "command": ["get"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "attr": "string", "target": "string"},
@@ -99,7 +99,7 @@
     },
     {
       "name": "wait",
-      "label": "u2cli wait",
+      "label": "android-cli wait",
       "description": "Wait for a selector kind/value and return structured diagnostics.",
       "command": ["wait"],
       "inputSchema": {"serial": "string?", "kind": "string", "value": "string", "waitTimeoutMs": "integer"},
@@ -108,8 +108,8 @@
     },
     {
       "name": "batch",
-      "label": "u2cli batch",
-      "description": "Run multiple agent-style u2cli steps serially.",
+      "label": "android-cli batch",
+      "description": "Run multiple agent-style Android CLI steps serially.",
       "command": ["batch"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "steps": "string", "out": "string?", "confirmed": "boolean?"},
       "mutates": true,
@@ -117,7 +117,7 @@
     },
     {
       "name": "install_from_source",
-      "label": "u2cli install-from-source",
+      "label": "android-cli install-from-source",
       "description": "Install a local APK using the agent-style source command.",
       "command": ["install-from-source"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "source": "string", "confirmed": "boolean?"},
@@ -127,7 +127,7 @@
     },
     {
       "name": "back",
-      "label": "u2cli back",
+      "label": "android-cli back",
       "description": "Press Android back.",
       "command": ["back"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "confirmed": "boolean?"},
@@ -136,7 +136,7 @@
     },
     {
       "name": "home",
-      "label": "u2cli home",
+      "label": "android-cli home",
       "description": "Press Android home.",
       "command": ["home"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "confirmed": "boolean?"},
@@ -145,42 +145,64 @@
     },
     {
       "name": "appstate",
-      "label": "u2cli appstate",
+      "label": "android-cli appstate",
       "description": "Return the current foreground Android app using the agent-style surface.",
       "command": ["appstate"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
     },
     {
       "name": "screen_screenshot",
-      "label": "u2cli screen screenshot",
+      "label": "android-cli screen screenshot",
       "description": "Capture a screenshot from the selected Android device.",
       "command": ["screen", "screenshot"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "out": "string"}
     },
     {
+      "name": "screen_size",
+      "label": "android-cli screen size",
+      "description": "Read Android screen dimensions from the selected device.",
+      "command": ["screen", "size"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "screen_orientation",
+      "label": "android-cli screen orientation",
+      "description": "Read or set Android screen orientation on the selected device.",
+      "command": ["screen", "orientation"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "set": "string?",
+        "confirmed": "boolean?"
+      },
+      "optionFlags": {"set": "--set"},
+      "mutates": true,
+      "confirmWhen": ["set"]
+    },
+    {
       "name": "element_find",
-      "label": "u2cli element find",
+      "label": "android-cli element find",
       "description": "Find Android UI elements matching a structured selector.",
       "command": ["element", "find"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "selector": "Selector"}
     },
     {
       "name": "element_exists",
-      "label": "u2cli element exists",
+      "label": "android-cli element exists",
       "description": "Check whether Android UI elements match a structured selector.",
       "command": ["element", "exists"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "selector": "Selector"}
     },
     {
       "name": "element_wait",
-      "label": "u2cli element wait",
+      "label": "android-cli element wait",
       "description": "Wait for an Android UI element matching a structured selector.",
       "command": ["element", "wait"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer", "selector": "Selector"}
     },
     {
       "name": "element_click",
-      "label": "u2cli element click",
+      "label": "android-cli element click",
       "description": "Click one Android UI element matching a structured selector.",
       "command": ["element", "click"],
       "inputSchema": {
@@ -194,7 +216,7 @@
     },
     {
       "name": "element_set_text",
-      "label": "u2cli element set text",
+      "label": "android-cli element set text",
       "description": "Set text on one Android UI element matching a structured selector.",
       "command": ["element", "set-text"],
       "inputSchema": {
@@ -210,14 +232,14 @@
     },
     {
       "name": "element_get_text",
-      "label": "u2cli element get text",
+      "label": "android-cli element get text",
       "description": "Read text from one Android UI element matching a structured selector.",
       "command": ["element", "get-text"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "selector": "Selector"}
     },
     {
       "name": "element_clear_text",
-      "label": "u2cli element clear text",
+      "label": "android-cli element clear text",
       "description": "Clear text on one Android UI element matching a structured selector.",
       "command": ["element", "clear-text"],
       "inputSchema": {
@@ -231,7 +253,7 @@
     },
     {
       "name": "input_tap",
-      "label": "u2cli input tap",
+      "label": "android-cli input tap",
       "description": "Tap absolute screen coordinates on the selected Android device.",
       "command": ["input", "tap"],
       "inputSchema": {
@@ -246,7 +268,7 @@
     },
     {
       "name": "input_swipe",
-      "label": "u2cli input swipe",
+      "label": "android-cli input swipe",
       "description": "Swipe between absolute screen coordinates on the selected Android device.",
       "command": ["input", "swipe"],
       "inputSchema": {
@@ -262,7 +284,7 @@
     },
     {
       "name": "input_press",
-      "label": "u2cli input press",
+      "label": "android-cli input press",
       "description": "Press an Android key name such as back, home, or enter.",
       "command": ["input", "press"],
       "inputSchema": {
@@ -276,7 +298,7 @@
     },
     {
       "name": "input_text",
-      "label": "u2cli input text",
+      "label": "android-cli input text",
       "description": "Send text input to the selected Android device.",
       "command": ["input", "text"],
       "inputSchema": {
@@ -290,21 +312,21 @@
     },
     {
       "name": "toast_get",
-      "label": "u2cli toast get",
+      "label": "android-cli toast get",
       "description": "Read a toast message from the selected Android device.",
       "command": ["toast", "get"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer"}
     },
     {
       "name": "device_clipboard_get",
-      "label": "u2cli device clipboard get",
+      "label": "android-cli device clipboard get",
       "description": "Read Android device clipboard text.",
       "command": ["device", "clipboard-get"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
     },
     {
       "name": "device_clipboard_set",
-      "label": "u2cli device clipboard set",
+      "label": "android-cli device clipboard set",
       "description": "Set Android device clipboard text.",
       "command": ["device", "clipboard-set"],
       "inputSchema": {
@@ -318,14 +340,14 @@
     },
     {
       "name": "app_current",
-      "label": "u2cli app current",
+      "label": "android-cli app current",
       "description": "Return the current foreground Android app.",
       "command": ["app", "current"],
       "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
     },
     {
       "name": "app_launch",
-      "label": "u2cli app launch",
+      "label": "android-cli app launch",
       "description": "Launch an Android app package.",
       "command": ["app", "launch"],
       "inputSchema": {
@@ -343,7 +365,7 @@
     },
     {
       "name": "app_stop",
-      "label": "u2cli app stop",
+      "label": "android-cli app stop",
       "description": "Stop an Android app package.",
       "command": ["app", "stop"],
       "inputSchema": {

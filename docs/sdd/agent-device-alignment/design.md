@@ -3,12 +3,12 @@
 - **Spec ID**：`agent-device-alignment`
 - **Status**：`Review`
 - **Owner**：`u2cli maintainers`
-- **Last Updated**：`2026-05-26`
+- **Last Updated**：`2026-05-27`
 - **Source Requirements**：`./requirements.md`
 
 ## Design Summary
 
-本 spec 在现有 `u2cli-core` 子命令树之上新增 agent 风格入口层。顶层命令尽量复用现有 handler、selector、锁、timeout、错误模型和 JSON 渲染，不复制 Android 执行语义。新增能力集中在 session store、snapshot ref、target parser、顶层命令适配、诊断字段和 batch 编排。
+本 spec 在现有 `u2cli-core` 子命令树之上新增 agent 风格入口层。推荐入口名为 `android-cli`，`u2cli` 作为兼容入口保留。顶层命令尽量复用现有 handler、selector、锁、timeout、错误模型和 JSON 渲染，不复制 Android 执行语义。新增能力集中在 session store、snapshot ref、target parser、顶层命令适配、诊断字段和 batch 编排。
 
 ## Requirement Mapping
 
@@ -31,15 +31,15 @@
 新增入口层只负责把短命令和位置参数转换为现有核心语义。示例：
 
 ```text
-u2cli back             -> input press --key back
-u2cli open <package>   -> app start / app launch
-u2cli snapshot -i      -> screen dump --compact + ref
-u2cli click @e3        -> ref target -> bounds tap or selector click
+android-cli back             -> input press --key back
+android-cli open <package>   -> app start / app launch
+android-cli snapshot -i      -> screen dump --compact + ref
+android-cli click @e3        -> ref target -> bounds tap or selector click
 ```
 
 设计原则：
 
-- 旧子命令保持原样。
+- 旧子命令和 `u2cli` 兼容入口保持原样。
 - 顶层命令返回同一 JSON result 模型。
 - 顶层命令的 `command` 字段使用扁平命名。
 

@@ -1,14 +1,14 @@
-# u2cli Core Design
+# Android CLI Core Design
 
 - **Spec ID**：`u2cli-core`
 - **Status**：`Implemented`
 - **Owner**：`u2cli maintainers`
-- **Last Updated**：`2026-05-26`
+- **Last Updated**：`2026-05-27`
 - **Source Requirements**：`./requirements.md`
 
 ## Design Summary
 
-u2cli 采用 Typer CLI + `uiautomator2` 执行内核。CLI 层负责参数解析、上下文构造、错误归一化和 JSON 渲染；命令模块负责具体 Android 能力；纯函数和适配层负责 selector、结果模型、锁、timeout、dump projection 和 Pi schema。
+Android CLI 采用 Typer CLI，推荐入口为 `android-cli`，兼容入口为 `u2cli`。CLI 层负责参数解析、上下文构造、错误归一化和 JSON 渲染；命令模块负责具体 Android 能力；纯函数和适配层负责 selector、结果模型、锁、timeout、dump projection 和 Pi schema。现有元素与 watcher 能力主要走 `uiautomator2`，但 screen snapshot、设备诊断和后续 catch-up 能力可按场景使用 ADB、snapshot helper、JAR 或 u2 后端。
 
 ## Requirement Mapping
 

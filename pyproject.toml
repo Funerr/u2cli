@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "u2cli"
 version = "0.1.0"
-description = "Agent-friendly Android CLI built on uiautomator2"
+description = "Agent-friendly Android CLI with uiautomator2-compatible backends"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -24,6 +24,7 @@ dev = [
 ]
 
 [project.scripts]
+android-cli = "u2cli.cli:main"
 u2cli = "u2cli.cli:main"
 
 [tool.hatch.build.targets.wheel]

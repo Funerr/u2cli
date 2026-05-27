@@ -1,9 +1,9 @@
-# u2cli Core Tasks
+# Android CLI Core Tasks
 
 - **Spec ID**：`u2cli-core`
 - **Status**：`Implemented`
 - **Owner**：`u2cli maintainers`
-- **Last Updated**：`2026-05-26`
+- **Last Updated**：`2026-05-27`
 - **Source Design**：`./design.md`
 
 ## Task List

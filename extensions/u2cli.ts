@@ -28,11 +28,22 @@ type ToolSpec = {
   inputSchema: Record<string, `${SchemaType}${"?" | ""}`>;
   optionFlags?: Record<string, string>;
   positionals?: string[];
+  mutates?: boolean;
   confirm?: boolean;
+  confirmWhen?: string[];
 };
 
 type SharedTools = {
   tools: ToolSpec[];
+};
+
+type ProjectSettings = {
+  u2cli?: {
+    requireAgentRole?: boolean;
+  };
+  androidCli?: {
+    requireAgentRole?: boolean;
+  };
 };
 
 type Selector = {
@@ -72,12 +83,13 @@ type ExecutionDetails = {
   error?: string;
 };
 
-type U2CliToolResult = AgentToolResult<ExecutionDetails>;
+type AndroidCliToolResult = AgentToolResult<ExecutionDetails>;
 
-const TOOL_PREFIX = "u2cli_";
+const TOOL_PREFIXES = ["android_cli_", "u2cli_"] as const;
 const FALLBACK_SOURCE = "git+https://github.com/Funerr/u2cli.git";
 const EXEC_HINT =
-  "Set U2CLI_BIN=/path/to/u2cli, install with `uv tool install git+https://github.com/Funerr/u2cli`, or make `uvx` available for the git fallback.";
+  "Set ANDROID_CLI_BIN=/path/to/android-cli or U2CLI_BIN=/path/to/u2cli, install with `uv tool install git+https://github.com/Funerr/u2cli`, or make `uvx` available for the git fallback.";
+const READONLY_AGENT_ROLES = new Set(["planner", "healer"]);
 
 const selectorSchema = Type.Object(
   {
@@ -118,6 +130,19 @@ const sharedToolsPath = resolve(
   "../src/u2cli/pi/tools.json",
 );
 const sharedTools = JSON.parse(await readFile(sharedToolsPath, "utf8")) as SharedTools;
+const projectSettings = await readProjectSettings();
+
+async function readProjectSettings(): Promise<ProjectSettings> {
+  try {
+    const raw = await readFile(resolve(process.cwd(), ".pi/settings.json"), "utf8");
+    const settings = JSON.parse(raw) as unknown;
+    return settings && typeof settings === "object" && !Array.isArray(settings)
+      ? (settings as ProjectSettings)
+      : {};
+  } catch {
+    return {};
+  }
+}
 
 function schemaFromSpec(spec: ToolSpec): TSchema {
   const properties: Record<string, TSchema> = {};
@@ -128,7 +153,7 @@ function schemaFromSpec(spec: ToolSpec): TSchema {
     const baseType = (optional ? encodedType.slice(0, -1) : encodedType) as SchemaType;
     const schemaFactory = primitiveSchemas[baseType];
     if (!schemaFactory) {
-      throw new Error(`Unsupported u2cli Pi schema type ${encodedType} for ${spec.name}.${name}`);
+      throw new Error(`Unsupported Android CLI Pi schema type ${encodedType} for ${spec.name}.${name}`);
     }
     properties[name] = optional ? Type.Optional(schemaFactory()) : schemaFactory();
     if (!optional) {
@@ -174,7 +199,7 @@ function buildArgs(spec: ToolSpec, input: ToolInput): string[] {
     const value = input[field];
     if (value === undefined) {
       if (!optional) {
-        throw new Error(`Missing required u2cli positional argument: ${field}`);
+        throw new Error(`Missing required Android CLI positional argument: ${field}`);
       }
       continue;
     }
@@ -208,7 +233,7 @@ function buildArgs(spec: ToolSpec, input: ToolInput): string[] {
 
     if (value === undefined) {
       if (!optional) {
-        throw new Error(`Missing required u2cli argument: ${field}`);
+        throw new Error(`Missing required Android CLI argument: ${field}`);
       }
       continue;
     }
@@ -234,12 +259,12 @@ function buildArgs(spec: ToolSpec, input: ToolInput): string[] {
 function parseStdout(stdout: string): CommandResult {
   const trimmed = stdout.trim();
   if (!trimmed) {
-    throw new Error("u2cli did not write a JSON object to stdout");
+    throw new Error("Android CLI did not write a JSON object to stdout");
   }
 
   const payload = JSON.parse(trimmed) as unknown;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("u2cli stdout was not a single JSON object");
+    throw new Error("Android CLI stdout was not a single JSON object");
   }
   return payload as CommandResult;
 }
@@ -251,11 +276,16 @@ type CommandCandidate = {
 };
 
 function commandCandidates(): CommandCandidate[] {
+  if (process.env.ANDROID_CLI_BIN) {
+    return [{ file: process.env.ANDROID_CLI_BIN, argsPrefix: [], fallbackOnMissing: false }];
+  }
   if (process.env.U2CLI_BIN) {
     return [{ file: process.env.U2CLI_BIN, argsPrefix: [], fallbackOnMissing: false }];
   }
   return [
+    { file: "android-cli", argsPrefix: [], fallbackOnMissing: true },
     { file: "u2cli", argsPrefix: [], fallbackOnMissing: true },
+    { file: "uvx", argsPrefix: ["--from", FALLBACK_SOURCE, "android-cli"], fallbackOnMissing: true },
     { file: "uvx", argsPrefix: ["--from", FALLBACK_SOURCE, "u2cli"], fallbackOnMissing: false },
   ];
 }
@@ -320,7 +350,7 @@ function runCandidate(candidate: CommandCandidate, args: string[]): Promise<{
           });
         } catch (parseError) {
           const message = parseError instanceof Error ? parseError.message : String(parseError);
-          const payload = errorPayload("U2CLI_NON_JSON_OUTPUT", message);
+          const payload = errorPayload("ANDROID_CLI_NON_JSON_OUTPUT", message);
           resolvePromise({
             missing: false,
             text: formatResult(payload),
@@ -341,7 +371,7 @@ function runCandidate(candidate: CommandCandidate, args: string[]): Promise<{
   });
 }
 
-async function runU2Cli(args: string[]): Promise<{
+async function runAndroidCli(args: string[]): Promise<{
   text: string;
   details: ExecutionDetails;
   isError: boolean;
@@ -355,7 +385,7 @@ async function runU2Cli(args: string[]): Promise<{
       continue;
     }
     if (result.missing) {
-      const payload = errorPayload("U2CLI_NOT_FOUND", `${candidate.file} was not found. ${EXEC_HINT}`);
+      const payload = errorPayload("ANDROID_CLI_NOT_FOUND", `${candidate.file} was not found. ${EXEC_HINT}`);
       return {
         text: formatResult(payload),
         details: { ...result.details, payload },
@@ -365,18 +395,27 @@ async function runU2Cli(args: string[]): Promise<{
     return result;
   }
 
-  const payload = errorPayload("U2CLI_NOT_FOUND", `u2cli was not found. ${EXEC_HINT}`);
+  const payload = errorPayload("ANDROID_CLI_NOT_FOUND", `Android CLI was not found. ${EXEC_HINT}`);
   return {
     text: formatResult(payload),
     details: lastMissing
       ? { ...lastMissing, payload }
-      : { command: ["u2cli", ...args], exitCode: null, signal: null, stderr: "", payload },
+      : { command: ["android-cli", ...args], exitCode: null, signal: null, stderr: "", payload },
     isError: true,
   };
 }
 
-async function maybeConfirm(spec: ToolSpec, input: ToolInput, ctx: ExtensionContext): Promise<void> {
-  if (!spec.confirm) {
+async function maybeConfirm(
+  spec: ToolSpec,
+  input: ToolInput,
+  ctx: ExtensionContext,
+  toolName: string,
+): Promise<void> {
+  const needsConfirmation =
+    spec.confirm === true ||
+    spec.confirmWhen?.some((field) => input[field] !== undefined && input[field] !== null);
+
+  if (!needsConfirmation) {
     return;
   }
 
@@ -386,21 +425,85 @@ async function maybeConfirm(spec: ToolSpec, input: ToolInput, ctx: ExtensionCont
 
   if (!ctx.hasUI) {
     throw new Error(
-      `${TOOL_PREFIX}${spec.name} changes Android device state. Pass confirmed: true in headless mode.`,
+      `${toolName} changes Android device state. Pass confirmed: true in headless mode.`,
     );
   }
 
   const accepted = await ctx.ui.confirm(
-    `${TOOL_PREFIX}${spec.name}`,
+    toolName,
     `This tool will change Android device state.\n\n${JSON.stringify(input, null, 2)}`,
   );
   if (!accepted) {
-    throw new Error(`${TOOL_PREFIX}${spec.name} cancelled by user`);
+    throw new Error(`${toolName} cancelled by user`);
   }
+}
+
+function registerTool(pi: ExtensionAPI, failedToolCalls: Set<string>, spec: ToolSpec, prefix: string): void {
+  const toolName = `${prefix}${spec.name}`;
+
+  pi.registerTool({
+    name: toolName,
+    label: spec.label ?? toolName,
+    description: spec.description ?? spec.label ?? spec.name,
+    parameters: schemaFromSpec(spec),
+    async execute(
+      toolCallId: string,
+      input: ToolInput,
+      _signal: AbortSignal | undefined,
+      _onUpdate: unknown,
+      ctx: ExtensionContext,
+    ): Promise<AndroidCliToolResult> {
+      await maybeConfirm(spec, input, ctx, toolName);
+
+      const args = buildArgs(spec, input);
+      const result = await runAndroidCli(args);
+      const toolResult: AndroidCliToolResult = {
+        content: [{ type: "text", text: result.text }],
+        details: result.details,
+      };
+
+      if (result.isError) {
+        failedToolCalls.add(toolCallId);
+      }
+
+      return toolResult;
+    },
+  });
+}
+
+function currentAgentRole(): string | undefined {
+  const role = process.env.PI_AGENT_ROLE?.trim().toLowerCase();
+  return role || undefined;
+}
+
+function envFlag(name: string): boolean {
+  const value = process.env[name]?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+function requireAgentRole(): boolean {
+  return (
+    envFlag("ANDROID_CLI_PI_REQUIRE_AGENT_ROLE") ||
+    envFlag("U2CLI_PI_REQUIRE_AGENT_ROLE") ||
+    projectSettings.androidCli?.requireAgentRole === true ||
+    projectSettings.u2cli?.requireAgentRole === true
+  );
+}
+
+function isMutatingTool(spec: ToolSpec): boolean {
+  return spec.mutates === true || spec.confirm === true || Boolean(spec.confirmWhen?.length);
+}
+
+function canRegisterForRole(spec: ToolSpec, role: string | undefined): boolean {
+  if (!role) return !requireAgentRole();
+  if (role === "executor") return true;
+  if (READONLY_AGENT_ROLES.has(role)) return !isMutatingTool(spec);
+  return false;
 }
 
 export default function u2cliExtension(pi: ExtensionAPI): void {
   const failedToolCalls = new Set<string>();
+  const role = currentAgentRole();
 
   pi.on("tool_result", (event: ToolResultEvent) => {
     if (failedToolCalls.delete(event.toolCallId)) {
@@ -409,33 +512,9 @@ export default function u2cliExtension(pi: ExtensionAPI): void {
   });
 
   for (const spec of sharedTools.tools) {
-    pi.registerTool({
-      name: `${TOOL_PREFIX}${spec.name}`,
-      label: spec.label ?? `${TOOL_PREFIX}${spec.name}`,
-      description: spec.description ?? spec.label ?? spec.name,
-      parameters: schemaFromSpec(spec),
-      async execute(
-        toolCallId: string,
-        input: ToolInput,
-        _signal: AbortSignal | undefined,
-        _onUpdate: unknown,
-        ctx: ExtensionContext,
-      ): Promise<U2CliToolResult> {
-        await maybeConfirm(spec, input, ctx);
-
-        const args = buildArgs(spec, input);
-        const result = await runU2Cli(args);
-        const toolResult: U2CliToolResult = {
-          content: [{ type: "text", text: result.text }],
-          details: result.details,
-        };
-
-        if (result.isError) {
-          failedToolCalls.add(toolCallId);
-        }
-
-        return toolResult;
-      },
-    });
+    if (!canRegisterForRole(spec, role)) continue;
+    for (const prefix of TOOL_PREFIXES) {
+      registerTool(pi, failedToolCalls, spec, prefix);
+    }
   }
 }

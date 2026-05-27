@@ -3,14 +3,14 @@
 - **Spec ID**：`agent-device-alignment`
 - **Status**：`Review`
 - **Owner**：`u2cli maintainers`
-- **Last Updated**：`2026-05-26`
+- **Last Updated**：`2026-05-27`
 - **Source**：`PRD-agent-device-alignment.md`
 
 ## Context
 
-`u2cli` 已具备以 `uiautomator2` 为执行内核的 Android Agent CLI，包括核心子命令树、JSON 契约、错误码、per-serial 串行锁与 snapshot 能力。
+Android CLI 已具备 Android Agent CLI 的核心子命令树、JSON 契约、错误码、per-serial 串行锁与 snapshot 能力。当前对外推荐入口是 `android-cli`，历史 `u2cli` 命令继续作为兼容入口。现有执行层包含 `uiautomator2`，但项目定位是 Android CLI，不局限于 u2。
 
-在多 Agent 接入中，`agent-device` 风格 CLI 对 Agent 更友好：扁平顶层命令、`@eN` 短引用、snapshot 缓存、session 自动 hydrate、结构化诊断和高频组合命令。本 spec 定义 u2cli 对齐这些体验的需求。
+在多 Agent 接入中，`agent-device` 风格 CLI 对 Agent 更友好：扁平顶层命令、`@eN` 短引用、snapshot 缓存、session 自动 hydrate、结构化诊断和高频组合命令。本 spec 定义 Android CLI 对齐这些体验的需求。
 
 ## Goals
 
@@ -31,7 +31,7 @@
 - 不引入 React Native、DevTools、Metro。
 - 不暴露任意 shell 或 Python eval。
 - 不实现 PNG 像素 diff、screenshot overlay-refs、network 线索解析。
-- 不替换 `uiautomator2` 执行语义。
+- 不要求一次性替换已有 `uiautomator2` 执行路径；新增能力可按场景选择 ADB、helper、JAR 或 u2 后端。
 - 不实现多 Agent 多设备并发 session。
 
 ## Requirements
@@ -137,7 +137,7 @@ connect, disconnect, connection status
 
 **Acceptance**：
 
-- `TEST-ADA-031`：旧命令 `u2cli element click --text 登录 --json` 行为不变。
+- `TEST-ADA-031`：旧命令 `u2cli element click --text 登录 --json` 行为不变，推荐入口 `android-cli element click --text 登录 --json` 等价可用。
 - `TEST-ADA-032`：所有新增命令 stdout 仍是单个 JSON 对象。
 - `TEST-ADA-033`：新增错误码只扩展集合，不改变旧错误码语义。
 

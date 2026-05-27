@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import sys
-from contextlib import redirect_stdout
 from collections.abc import Callable
+from contextlib import redirect_stdout
+from pathlib import Path
 from typing import Any
 from typing import cast
 
@@ -40,7 +41,7 @@ from u2cli.watcher import commands as watcher_commands
 app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
-    help="Agent-friendly Android CLI built on uiautomator2.",
+    help="Agent-friendly Android CLI for device automation.",
 )
 device_app = typer.Typer(help="Inspect Android devices.")
 app_app = typer.Typer(help="Manage app lifecycle.")
@@ -402,7 +403,9 @@ def agent_snapshot(
     _ = compact
     _emit(
         "snapshot",
-        lambda: agent_commands.snapshot(_ctx, interactive=interactive, full=full, target_text=target_text),
+        lambda: agent_commands.snapshot(
+            _ctx, interactive=interactive, full=full, target_text=target_text
+        ),
     )
 
 
@@ -602,7 +605,9 @@ def agent_alert_command(
 
 
 @app.command("clipboard")
-def agent_clipboard(action: str = typer.Argument(...), text: str | None = typer.Argument(None)) -> None:
+def agent_clipboard(
+    action: str = typer.Argument(...), text: str | None = typer.Argument(None)
+) -> None:
     _emit("clipboard", lambda: agent_commands.clipboard(_mutation_ctx(), action, text))
 
 
@@ -621,7 +626,9 @@ def agent_reinstall(
 
 @app.command("install-from-source")
 def agent_install_from_source(source: str = typer.Argument(...)) -> None:
-    _emit("install-from-source", lambda: agent_commands.install_from_source(_mutation_ctx(), source))
+    _emit(
+        "install-from-source", lambda: agent_commands.install_from_source(_mutation_ctx(), source)
+    )
 
 
 @app.command("batch")
@@ -1336,7 +1343,14 @@ def session_clear() -> None:
     _emit("session.clear", lambda: session_commands.clear(_ctx))
 
 
-def main(argv: list[str] | None = None) -> None:
+def _default_prog_name() -> str:
+    script_name = Path(sys.argv[0]).name
+    if script_name in {"android-cli", "u2cli"}:
+        return script_name
+    return "android-cli"
+
+
+def main(argv: list[str] | None = None, prog_name: str | None = None) -> None:
     global _ctx, _exit_code
     _exit_code = 0
     raw_args = list(sys.argv[1:] if argv is None else argv)
@@ -1355,7 +1369,7 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(exit_code_for(error.code))
     _ctx = parsed
     try:
-        app(args=args, prog_name="u2cli", standalone_mode=False)
+        app(args=args, prog_name=prog_name or _default_prog_name(), standalone_mode=False)
     except click.exceptions.Exit as exc:
         raise SystemExit(exc.exit_code) from exc
     except click.ClickException as exc:

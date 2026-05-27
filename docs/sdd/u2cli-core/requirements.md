@@ -1,14 +1,16 @@
-# u2cli Core Requirements
+# Android CLI Core Requirements
 
 - **Spec ID**：`u2cli-core`
 - **Status**：`Implemented`
 - **Owner**：`u2cli maintainers`
-- **Last Updated**：`2026-05-26`
+- **Last Updated**：`2026-05-27`
 - **Source**：`PLAN.md`、`README.md`
 
 ## Context
 
-`u2cli` 是基于 `uiautomator2` 的 Android 自动化 CLI。核心目标是把常用 Android 设备操作封装为稳定、可测试、适合 Agent / Pi tool 调用的命令接口。
+Android CLI 是面向 Agent / Pi tool 的 Android 自动化 CLI。对外推荐入口是 `android-cli`；`u2cli` 保留为 Python 包名、源码目录名、历史 spec 名和兼容命令名。
+
+核心目标是把常用 Android 设备操作封装为稳定、可测试、适合 Agent / Pi tool 调用的命令接口。部分元素操作、watcher 和 Toast 场景仍使用 `uiautomator2`，但项目定位不是 u2 wrapper；ADB、snapshot helper、JAR snapshot 等后端可以按能力需要并存。
 
 本 spec 固化已存在的核心 CLI 契约。后续对现有命令面、JSON 返回、错误码、selector、锁、timeout、Pi schema 的行为改动，都应先更新本 spec。
 
@@ -48,7 +50,7 @@
 
 **Acceptance**：
 
-- `TEST-CORE-003`：`u2cli --help` 可发现核心命令族。
+- `TEST-CORE-003`：`android-cli --help` 可发现核心命令族，兼容入口 `u2cli --help` 行为保持可用。
 - `TEST-CORE-004`：每个核心命令族至少有成功路径和失败路径测试。
 
 ### `REQ-CORE-003`：Selector 契约
@@ -94,7 +96,7 @@
 
 **Acceptance**：
 
-- `TEST-CORE-014`：`u2cli pi schema` 能导出可消费的工具 schema。
+- `TEST-CORE-014`：`android-cli pi schema` 能导出可消费的工具 schema，兼容入口 `u2cli pi schema` 行为保持可用。
 - `TEST-CORE-015`：Pi extension 和 CLI schema 的命令列表可从同一源文件或可追踪生成路径验证。
 
 ## Compatibility
@@ -104,7 +106,7 @@
 - 退出码：`0` 成功，`1` 可恢复命令失败，`2` 内部错误，`64` 参数错误。
 - 错误码：详见 [design.md](./design.md)。
 - Pi schema：需要随命令契约同步。
-- 旧命令兼容：本 spec 固化现有核心子命令树，后续不应破坏旧命令行为，除非有新的 approved spec 明确替代。
+- 旧命令兼容：本 spec 固化现有核心子命令树和 `u2cli` 兼容入口，后续不应破坏旧命令行为，除非有新的 approved spec 明确替代。
 
 ## Open Questions
 

@@ -54,6 +54,32 @@ def test_doctor_json(monkeypatch, capsys) -> None:
     assert payload["data"]["python"]["ok"] is True
 
 
+def test_main_help_uses_android_cli_prog_name(capsys) -> None:
+    try:
+        cli_module.main(["--help"])
+    except SystemExit as exc:
+        code = int(exc.code or 0)
+    else:
+        code = 0
+    captured = capsys.readouterr()
+
+    assert code == 0
+    assert "Usage: android-cli" in captured.out
+
+
+def test_main_can_keep_u2cli_compat_prog_name(capsys) -> None:
+    try:
+        cli_module.main(["--help"], prog_name="u2cli")
+    except SystemExit as exc:
+        code = int(exc.code or 0)
+    else:
+        code = 0
+    captured = capsys.readouterr()
+
+    assert code == 0
+    assert "Usage: u2cli" in captured.out
+
+
 def test_devices_json(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         "u2cli.device.health.list_adb_devices",
@@ -377,7 +403,11 @@ def test_toast_get_polls_snapshot_helper_until_captured(
         return type(
             "Capture",
             (),
-            {"metadata": {"toastCapture": {"status": "captured" if latest else "empty", "latest": latest}}},
+            {
+                "metadata": {
+                    "toastCapture": {"status": "captured" if latest else "empty", "latest": latest}
+                }
+            },
         )()
 
     monkeypatch.setattr("u2cli.toast.commands.capture_with_helper", capture_helper)
@@ -492,7 +522,9 @@ def test_snapshot_writes_ref_cache_and_click_fill_get_ref(
     assert code == 0
     assert payload["data"]["cached"] is True
 
-    code, payload = run_main(["click", "@e0", "--double-tap", "--count", "2", "--jitter-px", "4"], capsys)
+    code, payload = run_main(
+        ["click", "@e0", "--double-tap", "--count", "2", "--jitter-px", "4"], capsys
+    )
     assert code == 0
     assert payload["data"]["tapCount"] == 4
     assert len(fake_device.taps) >= 5
@@ -565,7 +597,15 @@ def test_batch_preserves_successful_steps_on_failure(fake_device, tmp_path, caps
     )
 
     code, payload = run_main(
-        ["--serial", "emulator-5554", "batch", "--steps", steps, "--out", str(tmp_path / "batch-failed.json")],
+        [
+            "--serial",
+            "emulator-5554",
+            "batch",
+            "--steps",
+            steps,
+            "--out",
+            str(tmp_path / "batch-failed.json"),
+        ],
         capsys,
     )
 
@@ -591,7 +631,9 @@ def test_alert_accept_finds_candidate(fake_device, capsys) -> None:
 
 
 def test_keyboard_status(fake_device, capsys) -> None:
-    fake_device.last_shell_output = "mInputShown=true\nmCurId=com.example/.Ime\nmServedView=EditText"
+    fake_device.last_shell_output = (
+        "mInputShown=true\nmCurId=com.example/.Ime\nmServedView=EditText"
+    )
 
     code, payload = run_main(["--serial", "emulator-5554", "keyboard", "status"], capsys)
 

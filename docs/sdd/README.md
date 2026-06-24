@@ -1,6 +1,6 @@
 # SDD 文档体系
 
-本目录是 Android CLI 后续需求、设计和任务拆解的唯一规范入口。`u2cli` 是历史包名、兼容命令名和早期 spec 命名；新需求应按 Android CLI 产品定位描述，不应把项目限制为 uiautomator2 wrapper。所有影响产品行为、命令契约、错误码、数据结构、架构边界或测试验收的改动，都应先落到一个 SDD spec，再进入实现。
+本目录是 AndroidTestClii 后续需求、设计和任务拆解的唯一规范入口。`androidtestclii` 是历史包名、兼容命令名和早期 spec 命名；新需求应按 AndroidTestClii 产品定位描述，不应把项目限制为 uiautomator2 wrapper。所有影响产品行为、命令契约、错误码、数据结构、架构边界或测试验收的改动，都应先落到一个 SDD spec，再进入实现。
 
 ## 目录结构
 
@@ -19,7 +19,7 @@ docs/sdd/
 
 当前 spec：
 
-- [u2cli-core](./u2cli-core/requirements.md)：Android CLI 已有核心契约；目录名保留 `u2cli-core` 以兼容历史追踪。
+- [androidtestclii-core](./androidtestclii-core/requirements.md)：AndroidTestClii 已有核心契约；目录名保留 `androidtestclii-core` 以兼容历史追踪。
 - [agent-device-alignment](./agent-device-alignment/requirements.md)：对齐 agent-device 风格 CLI 体验。
 - [agent-device-catchup](./agent-device-catchup/requirements.md)：继续追赶 agent-device/DeviceTestCLI 的高级诊断、回放、视觉和系统能力。
 
@@ -86,7 +86,7 @@ REQ-ADA-001  -> DES-ADA-001  -> TASK-ADA-001  -> TEST-ADA-001
 
 ## 兼容性要求
 
-Android CLI 是 Agent 调用型 CLI，文档中的任何行为变更必须显式说明：
+AndroidTestClii 是 Agent 调用型 CLI，文档中的任何行为变更必须显式说明：
 
 - stdout JSON 契约是否变化。
 - stderr 日志契约是否变化。

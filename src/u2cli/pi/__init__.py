@@ -1,1 +1,7 @@
-"""Pi tool integration helpers."""
+from __future__ import annotations
+
+import importlib
+import sys
+
+_module = importlib.import_module("androidtestclii.pi")
+sys.modules[__name__] = _module

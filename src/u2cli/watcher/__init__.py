@@ -1,1 +1,7 @@
-"""Watcher commands for transient dialogs."""
+from __future__ import annotations
+
+import importlib
+import sys
+
+_module = importlib.import_module("androidtestclii.watcher")
+sys.modules[__name__] = _module

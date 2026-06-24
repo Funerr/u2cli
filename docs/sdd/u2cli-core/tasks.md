@@ -1,8 +1,8 @@
-# Android CLI Core Tasks
+# AndroidTestClii Core Tasks
 
-- **Spec ID**：`u2cli-core`
+- **Spec ID**：`androidtestclii-core`
 - **Status**：`Implemented`
-- **Owner**：`u2cli maintainers`
+- **Owner**：`androidtestclii maintainers`
 - **Last Updated**：`2026-05-27`
 - **Source Design**：`./design.md`
 

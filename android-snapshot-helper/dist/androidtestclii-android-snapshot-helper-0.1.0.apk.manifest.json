@@ -1,0 +1,15 @@
+{
+  "name": "android-snapshot-helper",
+  "version": "0.1.0",
+  "assetName": "androidtestclii-android-snapshot-helper-0.1.0.apk",
+  "apkUrl": null,
+  "sha256": "f7901902d29fad339d7297185d2f1b0aeff77ec09ec453bc4b01b5f4f0e26c28",
+  "packageName": "com.callstack.androidtestclii.snapshothelper",
+  "versionCode": 1000,
+  "instrumentationRunner": "com.callstack.androidtestclii.snapshothelper/.SnapshotInstrumentation",
+  "minSdk": 23,
+  "targetSdk": 36,
+  "outputFormat": "uiautomator-xml",
+  "statusProtocol": "androidtestclii-snapshot-helper-v1",
+  "installArgs": ["install", "-r", "-t"]
+}

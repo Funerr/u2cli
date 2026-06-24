@@ -1,14 +1,14 @@
 # Agent Device Alignment Design
 
 - **Spec ID**：`agent-device-alignment`
-- **Status**：`Review`
-- **Owner**：`u2cli maintainers`
-- **Last Updated**：`2026-05-27`
+- **Status**：`Implemented`
+- **Owner**：`androidtestclii maintainers`
+- **Last Updated**：`2026-05-28`
 - **Source Requirements**：`./requirements.md`
 
 ## Design Summary
 
-本 spec 在现有 `u2cli-core` 子命令树之上新增 agent 风格入口层。推荐入口名为 `android-cli`，`u2cli` 作为兼容入口保留。顶层命令尽量复用现有 handler、selector、锁、timeout、错误模型和 JSON 渲染，不复制 Android 执行语义。新增能力集中在 session store、snapshot ref、target parser、顶层命令适配、诊断字段和 batch 编排。
+本 spec 在现有 `androidtestclii-core` 子命令树之上新增 agent 风格入口层。推荐入口名为 `AndroidTestClii`，`android-cli` 和 `androidtestclii` 作为兼容入口保留。顶层命令尽量复用现有 handler、selector、锁、timeout、错误模型和 JSON 渲染，不复制 Android 执行语义。新增能力集中在 session store、snapshot ref、target parser、顶层命令适配、诊断字段和 batch 编排。
 
 ## Requirement Mapping
 
@@ -31,15 +31,15 @@
 新增入口层只负责把短命令和位置参数转换为现有核心语义。示例：
 
 ```text
-android-cli back             -> input press --key back
-android-cli open <package>   -> app start / app launch
-android-cli snapshot -i      -> screen dump --compact + ref
-android-cli click @e3        -> ref target -> bounds tap or selector click
+AndroidTestClii back             -> input press --key back
+AndroidTestClii open <package>   -> app start / app launch
+AndroidTestClii snapshot -i      -> screen dump --compact + ref
+AndroidTestClii click @e3        -> ref target -> bounds tap or selector click
 ```
 
 设计原则：
 
-- 旧子命令和 `u2cli` 兼容入口保持原样。
+- 旧子命令和 `android-cli` / `androidtestclii` 兼容入口保持原样。
 - 顶层命令返回同一 JSON result 模型。
 - 顶层命令的 `command` 字段使用扁平命名。
 
@@ -77,8 +77,8 @@ compact snapshot 输出节点增加 `ref: "e<N>"`。完整 refMap 写入 session
 
 session 存储位置：
 
-- macOS：`~/Library/Application Support/u2cli/session.json`。
-- 其他环境：`${HOME}/.config/u2cli/session.json`。
+- macOS：`~/Library/Application Support/AndroidTestClii/session.json`。
+- 其他环境：`${HOME}/.config/androidtestclii/session.json`。
 
 字段：
 
@@ -111,7 +111,7 @@ session 存储位置：
 
 **Covers**：`REQ-ADA-004`
 
-新增 `u2cli/agent/cli.py` 或等价模块注册顶层命令：
+新增 `androidtestclii/agent/cli.py` 或等价模块注册顶层命令：
 
 ```text
 apps, appstate, open, close, back, home, app-switcher, rotate,

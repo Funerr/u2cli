@@ -1,13 +1,7 @@
 from __future__ import annotations
 
-import json
-from importlib import resources
-from typing import Any
+import importlib
+import sys
 
-
-def tool_schema() -> dict[str, Any]:
-    raw = resources.files("u2cli.pi").joinpath("tools.json").read_text(encoding="utf-8")
-    schema = json.loads(raw)
-    if not isinstance(schema, dict):
-        raise TypeError("u2cli Pi tools schema must be a JSON object")
-    return schema
+_module = importlib.import_module("androidtestclii.pi.tool_schema")
+sys.modules[__name__] = _module

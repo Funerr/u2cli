@@ -1,14 +1,14 @@
 # Agent Device Catchup Requirements
 
 - **Spec ID**：`agent-device-catchup`
-- **Status**：`Draft`
-- **Owner**：`u2cli maintainers`
-- **Last Updated**：`2026-05-27`
+- **Status**：`Implemented`
+- **Owner**：`androidtestclii maintainers`
+- **Last Updated**：`2026-05-28`
 - **Source**：`/Users/funer/code/DeviceTestCLI/README.md`、`/Users/funer/code/DeviceTestCLI/specs/*`、`docs/sdd/agent-device-alignment/`
 
 ## Context
 
-`agent-device-alignment` 已覆盖 Android CLI 对齐 agent-device 风格的 P0/P1 命令面，包括顶层短命令、snapshot ref、session hydrate、结构化诊断、batch、alert、keyboard、connect、reinstall 等。`u2cli` 作为历史包名和兼容命令名保留，但 catchup 工作应以 Android CLI 能力面为目标。
+`agent-device-alignment` 已覆盖 AndroidTestClii 对齐 agent-device 风格的 P0/P1 命令面，包括顶层短命令、snapshot ref、session hydrate、结构化诊断、batch、alert、keyboard、connect、reinstall 等。`androidtestclii` 作为历史包名和兼容命令名保留，但 catchup 工作应以 AndroidTestClii 能力面为目标。
 
 本 spec 记录进一步追赶 `DeviceTestCLI` / agent-device 风格参考实现时仍存在的能力差距。它不重复 `agent-device-alignment` 中已有 P0/P1 任务，而是把剩余高级能力拆成可排期的 catchup backlog。
 
@@ -74,10 +74,10 @@
 
 ## Compatibility
 
-- stdout JSON：沿用 `u2cli-core` 单对象契约。
+- stdout JSON：沿用 `androidtestclii-core` 单对象契约。
 - stderr 日志：仅用于诊断。
-- 退出码：沿用现有退出码；如新增 unsupported 分类，需要单独更新 `u2cli-core`。
-- 错误码：新增错误码必须在本 spec 和 `u2cli-core` compatibility 中登记。
+- 退出码：沿用现有退出码；如新增 unsupported 分类，需要单独更新 `androidtestclii-core`。
+- 错误码：新增错误码必须在本 spec 和 `androidtestclii-core` compatibility 中登记。
 - Pi schema：新增顶层命令必须同步 Pi tool schema。
 - 旧命令兼容：不得破坏现有子命令树和 agent alignment 命令。
 
@@ -90,6 +90,6 @@
 
 ## Open Questions
 
-- 是否为 Android CLI 引入统一 `metadata` 顶层字段，还是把 capability metadata 放入 `data.metadata` 以保持现有顶层字段不变。
+- 是否为 AndroidTestClii 引入统一 `metadata` 顶层字段，还是把 capability metadata 放入 `data.metadata` 以保持现有顶层字段不变。
 - `device shell` 当前是受限 shell；追赶 `shell run` 任意命令是否应作为显式非默认能力，需单独安全评审。
 - `install-from-source` 是否允许远程 URL 下载，若允许需要校验下载路径、大小、hash 和超时。

@@ -7,12 +7,12 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-import u2cli.cli as cli_module
+import androidtestclii.cli as cli_module
 
 
 @pytest.fixture(autouse=True)
 def isolated_session(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.setenv("U2CLI_SESSION_PATH", str(tmp_path / "session.json"))
+    monkeypatch.setenv("ANDROIDTESTCLII_SESSION_PATH", str(tmp_path / "session.json"))
 
 
 class FakeElement:
@@ -117,6 +117,10 @@ class FakeDevice:
         self.screen_awake = True
         self.unlocked = False
         self.last_shell_output = "ok"
+        self.last_log_marker = "androidtestclii-log-start-0"
+        self.last_logcat_output: str | None = None
+        self.global_settings: dict[str, str] = {}
+        self.granted_permissions: set[str] = set()
 
     def __call__(self, **kwargs: Any) -> FakeElement:
         if kwargs.get("text") == "missing":
@@ -204,7 +208,47 @@ class FakeDevice:
 
     def shell(self, command: str) -> Any:
         self.shell_commands.append(command)
-        output = self.last_shell_output
+        if command == "logcat -d -v brief":
+            output = self.last_logcat_output or (
+                "old.example.test\n"
+                f"I/{command}: {self.last_log_marker}\n"
+                "OkHttp GET https://example.test\n"
+                "HTTP 200\n"
+            )
+        elif command == "atrace --async_stop -z":
+            output = "<html>trace</html>"
+        elif command == "cat /proc/meminfo":
+            output = "MemTotal: 1000 kB\nMemFree: 100 kB\nMemAvailable: 600 kB\nCached: 200 kB"
+        elif command == "cat /proc/stat":
+            output = "cpu  10 0 20 70 0 0 0 0 0 0"
+        elif command == "ps -A":
+            output = "USER PID PPID VSZ RSS WCHAN ADDR S NAME\nu0_a1 123 1 1 1 0 0 S com.example"
+        elif command.startswith("settings put global "):
+            parts = command.split()
+            self.global_settings[parts[3]] = parts[4]
+            output = ""
+        elif command.startswith("settings get global "):
+            parts = command.split()
+            output = self.global_settings.get(parts[3], "null")
+        elif command.startswith("pm grant "):
+            parts = command.split()
+            self.granted_permissions.add(f"{parts[2]}:{parts[3]}")
+            output = ""
+        elif command.startswith("pm revoke "):
+            parts = command.split()
+            self.granted_permissions.discard(f"{parts[2]}:{parts[3]}")
+            output = ""
+        elif command.startswith("dumpsys package "):
+            package = command.split()[2]
+            permission = "android.permission.CAMERA"
+            granted = str(f"{package}:{permission}" in self.granted_permissions).lower()
+            output = f"{permission}: granted={granted}"
+        elif command.startswith("am broadcast "):
+            output = "Broadcast completed: result=0"
+        elif command.startswith("am start "):
+            output = f"Starting: Intent {{ {command} }}"
+        else:
+            output = self.last_shell_output
 
         class Result:
             pass
@@ -255,14 +299,18 @@ class FakeAdbDevice:
 @pytest.fixture()
 def fake_device(monkeypatch: pytest.MonkeyPatch) -> FakeDevice:
     device = FakeDevice()
-    monkeypatch.setattr("u2cli.device.connect.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.device.commands.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.device.health.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.app.commands.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.screen.commands.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.screen.dump.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.device.connect.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.device.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.device.health.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.logs.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.diagnostics.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.system_control.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.recording.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.app.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.screen.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.screen.dump.connect_device", lambda serial, timeout_ms: device)
     monkeypatch.setattr(
-        "u2cli.screen.dump.capture_snapshot",
+        "androidtestclii.screen.dump.capture_snapshot",
         lambda fake, serial, timeout_ms, options=None: type(
             "Capture",
             (),
@@ -273,14 +321,14 @@ def fake_device(monkeypatch: pytest.MonkeyPatch) -> FakeDevice:
             },
         )(),
     )
-    monkeypatch.setattr("u2cli.screen.screenshot.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.screen.size.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.element.query.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.element.action.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.input.commands.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.toast.commands.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.toast.commands.resolve_snapshot_helper", lambda path: None)
-    monkeypatch.setattr("u2cli.watcher.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.screen.screenshot.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.screen.size.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.element.query.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.element.action.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.input.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.toast.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.toast.commands.resolve_snapshot_helper", lambda path: None)
+    monkeypatch.setattr("androidtestclii.watcher.commands.connect_device", lambda serial, timeout_ms: device)
     return device
 
 

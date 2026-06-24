@@ -6,16 +6,16 @@ from typing import Any
 
 import pytest
 
-from u2cli.context import CommandContext
-from u2cli.device import connect as device_connect
-from u2cli.element import action as element_action
-from u2cli.element import query as element_query
-from u2cli.element.selector import selector_from_kwargs
-from u2cli.errors import ErrorCode, U2CliError, normalize_exception
-from u2cli.input import commands as input_commands
-from u2cli.toast import commands as toast_commands
+from androidtestclii.context import CommandContext
+from androidtestclii.device import connect as device_connect
+from androidtestclii.element import action as element_action
+from androidtestclii.element import query as element_query
+from androidtestclii.element.selector import selector_from_kwargs
+from androidtestclii.errors import ErrorCode, U2CliError, normalize_exception
+from androidtestclii.input import commands as input_commands
+from androidtestclii.toast import commands as toast_commands
 
-import u2cli.cli as cli_module
+import androidtestclii.cli as cli_module
 
 
 def ctx(serial: str = "emulator-5554", timeout_ms: int = 1000) -> CommandContext:
@@ -150,7 +150,7 @@ def test_alert_timeout_option_reaches_agent_handler(
         seen.append(timeout_ms)
         return {"present": False, "attempts": 1, "durationMs": 0, "matchedCount": 0, "selectedIndex": None}
 
-    monkeypatch.setattr("u2cli.cli.agent_alert.wait", wait)
+    monkeypatch.setattr("androidtestclii.cli.agent_alert.wait", wait)
 
     code, payload = run_main(["--serial", "emulator-5554", "alert", "wait", "--timeout-ms", "123"], capsys)
 
@@ -222,8 +222,8 @@ def test_element_query_and_action_direct(monkeypatch: pytest.MonkeyPatch) -> Non
     element = QueryElement()
     device = QueryDevice(element)
     selector = selector_from_kwargs(text="Login")
-    monkeypatch.setattr("u2cli.element.query.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.element.action.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.element.query.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.element.action.connect_device", lambda serial, timeout_ms: device)
 
     assert element_query.find(ctx(), selector)["matched"] is True
     assert element_query.exists(ctx(), selector)["exists"] is True
@@ -272,9 +272,9 @@ class BrokenInputDevice:
 
 def test_input_adb_fallbacks(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr("u2cli.input.commands.connect_device", lambda serial, timeout_ms: BrokenInputDevice())
+    monkeypatch.setattr("androidtestclii.input.commands.connect_device", lambda serial, timeout_ms: BrokenInputDevice())
     monkeypatch.setattr(
-        "u2cli.input.commands.run_adb",
+        "androidtestclii.input.commands.run_adb",
         lambda serial, args, timeout_ms, allow_failure=False, adb_runner=None: calls.append(args),
     )
 
@@ -299,12 +299,12 @@ class ToastDevice:
 
 
 def test_toast_uiautomator2_paths(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("u2cli.toast.commands.resolve_snapshot_helper", lambda path: None)
-    monkeypatch.setattr("u2cli.toast.commands.connect_device", lambda serial, timeout_ms: ToastDevice("Saved"))
+    monkeypatch.setattr("androidtestclii.toast.commands.resolve_snapshot_helper", lambda path: None)
+    monkeypatch.setattr("androidtestclii.toast.commands.connect_device", lambda serial, timeout_ms: ToastDevice("Saved"))
     assert toast_commands.get(ctx())["message"] == "Saved"
     assert toast_commands.reset(ctx())["reset"] is True
 
-    monkeypatch.setattr("u2cli.toast.commands.connect_device", lambda serial, timeout_ms: ToastDevice(None))
+    monkeypatch.setattr("androidtestclii.toast.commands.connect_device", lambda serial, timeout_ms: ToastDevice(None))
     with pytest.raises(U2CliError) as exc:
         toast_commands.get(ctx())
     assert exc.value.code == ErrorCode.TOAST_TIMEOUT
@@ -322,9 +322,9 @@ def test_install_from_source_url(monkeypatch: pytest.MonkeyPatch) -> None:
             return b"apk"
 
     installed_paths: list[str] = []
-    monkeypatch.setattr("u2cli.agent.commands.urllib.request.urlopen", lambda source, timeout: Response())
+    monkeypatch.setattr("androidtestclii.agent.commands.urllib.request.urlopen", lambda source, timeout: Response())
     monkeypatch.setattr(
-        "u2cli.agent.commands.app_commands.install",
+        "androidtestclii.agent.commands.app_commands.install",
         lambda context, path: installed_paths.append(path) or {"installed": True, "apkPath": path},
     )
 
@@ -337,7 +337,7 @@ def test_install_from_source_url(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_device_connect_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("u2cli.device.connect.shutil.which", lambda name: "/usr/bin/adb")
+    monkeypatch.setattr("androidtestclii.device.connect.shutil.which", lambda name: "/usr/bin/adb")
 
     def run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         if args[-1] == "version":
@@ -349,7 +349,7 @@ def test_device_connect_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
             stderr="",
         )
 
-    monkeypatch.setattr("u2cli.device.connect.subprocess.run", run)
+    monkeypatch.setattr("androidtestclii.device.connect.subprocess.run", run)
     assert device_connect.adb_path() == "/usr/bin/adb"
     assert device_connect.adb_version() == "Android Debug Bridge version"
     devices = device_connect.list_adb_devices()
@@ -363,7 +363,7 @@ def test_device_connect_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
     assert exc.value.code == ErrorCode.DEVICE_NOT_FOUND
 
     fake_u2 = SimpleNamespace(connect=lambda serial=None: {"serial": serial})
-    monkeypatch.setattr("u2cli.device.connect.import_u2", lambda: fake_u2)
+    monkeypatch.setattr("androidtestclii.device.connect.import_u2", lambda: fake_u2)
     assert device_connect.connect_device("emulator-5554", 1000) == {"serial": "emulator-5554"}
     assert device_connect.python_health()["ok"] is True
 
@@ -388,7 +388,7 @@ def test_import_u2_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     def fail(name: str) -> Any:
         raise ImportError("missing")
 
-    monkeypatch.setattr("u2cli.device.connect.importlib.import_module", fail)
+    monkeypatch.setattr("androidtestclii.device.connect.importlib.import_module", fail)
     with pytest.raises(U2CliError) as exc:
         device_connect.import_u2()
     assert exc.value.code == ErrorCode.U2_IMPORT_FAILED

@@ -1,9 +1,9 @@
-# u2cli 计划
+# androidtestclii 计划
 
 > SDD 迁移说明：本文件保留为历史路线和早期设计材料。后续涉及需求、设计、任务、验收和兼容性的改动，应以 `docs/sdd/` 为规范源：
 >
 > - `docs/sdd/README.md`
-> - `docs/sdd/u2cli-core/`
+> - `docs/sdd/androidtestclii-core/`
 > - `docs/sdd/agent-device-alignment/`
 
 ## 目标
@@ -14,7 +14,7 @@
 
 ```text
 Pi tool
-  -> u2cli
+  -> androidtestclii
     -> uiautomator2
       -> Android device
 ```
@@ -47,12 +47,12 @@ CLI-Anything 用来提供 CLI harness 的基础结构和规范，包括：
 
 ```text
 CLI-Anything 负责起步框架和 agent CLI 规范
-u2cli 负责 Android/uiautomator2 的真实执行语义
+androidtestclii 负责 Android/uiautomator2 的真实执行语义
 ```
 
 ## 定位
 
-`u2cli` 只负责 Android 执行层：
+`androidtestclii` 只负责 Android 执行层：
 
 - 设备发现与健康检查
 - App 生命周期
@@ -62,7 +62,7 @@ u2cli 负责 Android/uiautomator2 的真实执行语义
 - Toast 捕获
 - JSON 结果归一化
 
-`u2cli` 不负责：
+`androidtestclii` 不负责：
 
 - 测试用例规划
 - replay 资产治理
@@ -90,9 +90,9 @@ u2cli 负责 Android/uiautomator2 的真实执行语义
 ### 全局参数
 
 ```bash
-u2cli --json <command>
-u2cli --serial <device-id> <command>
-u2cli --timeout-ms 5000 <command>
+androidtestclii --json <command>
+androidtestclii --serial <device-id> <command>
+androidtestclii --timeout-ms 5000 <command>
 ```
 
 规则：
@@ -105,9 +105,9 @@ u2cli --timeout-ms 5000 <command>
 ### Device
 
 ```bash
-u2cli doctor
-u2cli devices
-u2cli device info --serial <id>
+androidtestclii doctor
+androidtestclii devices
+androidtestclii device info --serial <id>
 ```
 
 职责：
@@ -121,21 +121,21 @@ u2cli device info --serial <id>
 ### App
 
 ```bash
-u2cli app current --serial <id>
-u2cli app start --serial <id> --package com.example.app
-u2cli app stop --serial <id> --package com.example.app
-u2cli app clear --serial <id> --package com.example.app
-u2cli app install --serial <id> --apk ./app.apk
-u2cli app uninstall --serial <id> --package com.example.app
+androidtestclii app current --serial <id>
+androidtestclii app start --serial <id> --package com.example.app
+androidtestclii app stop --serial <id> --package com.example.app
+androidtestclii app clear --serial <id> --package com.example.app
+androidtestclii app install --serial <id> --apk ./app.apk
+androidtestclii app uninstall --serial <id> --package com.example.app
 ```
 
 ### Screen
 
 ```bash
-u2cli screen dump --serial <id>
-u2cli screen dump --serial <id> --compact
-u2cli screen screenshot --serial <id> --out ./artifacts/screen.png
-u2cli screen size --serial <id>
+androidtestclii screen dump --serial <id>
+androidtestclii screen dump --serial <id> --compact
+androidtestclii screen screenshot --serial <id> --out ./artifacts/screen.png
+androidtestclii screen size --serial <id>
 ```
 
 `screen dump --compact` 应把原始 UI hierarchy 转换成 Agent 易读的节点列表。
@@ -143,13 +143,13 @@ u2cli screen size --serial <id>
 ### Element
 
 ```bash
-u2cli element find --serial <id> --text 登录
-u2cli element wait --serial <id> --text 首页 --timeout-ms 10000
-u2cli element click --serial <id> --text 登录 --timeout-ms 5000
-u2cli element long-click --serial <id> --text 删除 --timeout-ms 5000
-u2cli element set-text --serial <id> --resource-id com.example:id/email --text qa@example.com
-u2cli element clear-text --serial <id> --resource-id com.example:id/email
-u2cli element get-text --serial <id> --resource-id com.example:id/title
+androidtestclii element find --serial <id> --text 登录
+androidtestclii element wait --serial <id> --text 首页 --timeout-ms 10000
+androidtestclii element click --serial <id> --text 登录 --timeout-ms 5000
+androidtestclii element long-click --serial <id> --text 删除 --timeout-ms 5000
+androidtestclii element set-text --serial <id> --resource-id com.example:id/email --text qa@example.com
+androidtestclii element clear-text --serial <id> --resource-id com.example:id/email
+androidtestclii element get-text --serial <id> --resource-id com.example:id/title
 ```
 
 支持的 selector 字段：
@@ -178,17 +178,17 @@ selector 规则：
 ### Input
 
 ```bash
-u2cli input press --serial <id> --key back
-u2cli input tap --serial <id> --x 100 --y 200
-u2cli input swipe --serial <id> --from 500,1600 --to 500,400 --duration-ms 400
-u2cli input text --serial <id> --text hello
+androidtestclii input press --serial <id> --key back
+androidtestclii input tap --serial <id> --x 100 --y 200
+androidtestclii input swipe --serial <id> --from 500,1600 --to 500,400 --duration-ms 400
+androidtestclii input text --serial <id> --text hello
 ```
 
 ### Toast
 
 ```bash
-u2cli toast get --serial <id> --timeout-ms 3000
-u2cli toast reset --serial <id>
+androidtestclii toast get --serial <id> --timeout-ms 3000
+androidtestclii toast reset --serial <id>
 ```
 
 Toast 是短时信号，命令行为必须显式、可预期。
@@ -258,7 +258,7 @@ Toast 是短时信号，命令行为必须显式、可预期。
 ### PRD agent-device alignment implementation
 
 - 已新增顶层 agent-style 命令：`connect/disconnect/connection/apps/appstate/open/close/back/home/app-switcher/rotate/screenshot/snapshot/click/press/longpress/swipe/scroll/fill/type/focus/get/find/is/wait/alert/clipboard/keyboard/reinstall/install-from-source/batch`。
-- 已新增 session hydrate：成功命令在有 serial 时写 `${U2CLI_SESSION_PATH}` 或平台默认 session；未传 `--serial` 时自动读取 session；`session clear` 清理。
+- 已新增 session hydrate：成功命令在有 serial 时写 `${ANDROIDTESTCLII_SESSION_PATH}` 或平台默认 session；未传 `--serial` 时自动读取 session；`session clear` 清理。
 - 已新增 snapshot ref cache：compact 节点输出 `ref: "eN"`；完整 `refMap` 写入 session；`@eN` 支持 bounds fast path 与 cached text。
 - 已新增 selector target 解析：`text=...`、`id=...`、`testid=...`、`class=...`、`desc=...`、裸文本和 `@eN`。
 - 已补齐诊断字段和错误码：`SNAPSHOT_REF_NOT_FOUND`、`SNAPSHOT_REF_INVALID`、`SESSION_STALE`、`ALERT_NOT_FOUND`、`BATCH_STEP_FAILED`。
@@ -269,7 +269,7 @@ Toast 是短时信号，命令行为必须显式、可预期。
 - 使用 CLI-Anything 生成或搭建初始 harness。
 - 保留 CLI-Anything 推荐的 agent-friendly CLI 结构。
 - 建立 Python package。
-- 添加 console script：`u2cli`。
+- 添加 console script：`androidtestclii`。
 - 添加 JSON result helper。
 - 添加错误模型。
 - 添加基础命令路由。
@@ -307,19 +307,19 @@ Toast 是短时信号，命令行为必须显式、可预期。
 
 ### Phase 6：Pi 集成
 
-- 将 Pi tools 定义为 `u2cli` 的 typed wrapper。
+- 将 Pi tools 定义为 `androidtestclii` 的 typed wrapper。
 - Pi tool schema 要比 CLI flags 更窄。
 - 将 CLI JSON failure 映射为 Pi tool error。
-- 增加 `u2cli doctor` preflight tool。
+- 增加 `androidtestclii doctor` preflight tool。
 
 ## 后续：Python Sidecar
 
-MVP 可以每次 tool call 启动一次 `u2cli`。如果进程启动或 `u2.connect()` 延迟影响执行效率，再把核心命令抽成常驻 Python sidecar：
+MVP 可以每次 tool call 启动一次 `androidtestclii`。如果进程启动或 `u2.connect()` 延迟影响执行效率，再把核心命令抽成常驻 Python sidecar：
 
 ```text
 Pi tool
   -> localhost JSON-RPC
-    -> u2cli sidecar
+    -> androidtestclii sidecar
       -> cached u2 device connection
 ```
 
@@ -338,12 +338,12 @@ sidecar 必须复用同一套命令 schema 和 JSON 返回契约，这样 Pi too
 
 ## MVP 验收标准
 
-- `u2cli doctor --json` 返回结构化健康检查。
-- `u2cli devices --json` 返回已连接 Android 设备列表。
-- `u2cli screen dump --compact --json` 返回 Agent 易读元素。
-- `u2cli element click --text ... --json` 能执行语义点击，或返回稳定错误。
-- `u2cli element set-text ... --json` 能输入文本，或返回稳定错误。
-- `u2cli screen screenshot --out ... --json` 写入截图 artifact 并返回路径。
+- `androidtestclii doctor --json` 返回结构化健康检查。
+- `androidtestclii devices --json` 返回已连接 Android 设备列表。
+- `androidtestclii screen dump --compact --json` 返回 Agent 易读元素。
+- `androidtestclii element click --text ... --json` 能执行语义点击，或返回稳定错误。
+- `androidtestclii element set-text ... --json` 能输入文本，或返回稳定错误。
+- `androidtestclii screen screenshot --out ... --json` 写入截图 artifact 并返回路径。
 - 每条命令 stdout 都是合法 JSON。
 - 不暴露任意 Python eval 能力。
 
@@ -362,18 +362,18 @@ sidecar 必须复用同一套命令 schema 和 JSON 返回契约，这样 Pi too
 - **进程级锁**：`filelock >= 3`。
 - **打包**：`pyproject.toml` + `hatchling` 或 `setuptools`，开发期使用 `uv`。
 - **测试**：`pytest`、`pytest-mock`、`typer.testing.CliRunner`。
-- **静态检查**：`ruff`（lint+format）、`mypy`（在 `src/u2cli` 上 strict）。
-- **入口**：`[project.scripts] u2cli = "u2cli.cli:app"`。
+- **静态检查**：`ruff`（lint+format）、`mypy`（在 `src/androidtestclii` 上 strict）。
+- **入口**：`[project.scripts] androidtestclii = "androidtestclii.cli:app"`。
 
 ### B. 项目结构
 
 ```text
-u2cli/
+androidtestclii/
   pyproject.toml
   README.md
-  src/u2cli/
+  src/androidtestclii/
     __init__.py
-    __main__.py              # python -m u2cli 入口
+    __main__.py              # python -m androidtestclii 入口
     cli.py                   # typer 根 app + 全局 callback
     context.py               # CommandContext + 全局 flag 解析
     result.py                # CommandResult.success/failure，统一渲染
@@ -469,7 +469,7 @@ u2cli/
 
 ### G. Per-serial 串行锁
 
-- 实现：`filelock.FileLock("${TMPDIR}/u2cli/locks/${serial}.lock")`。
+- 实现：`filelock.FileLock("${TMPDIR}/androidtestclii/locks/${serial}.lock")`。
 - **加锁**命令集合：`app.start/stop/clear/install/uninstall`、`element.click/long-click/set-text/clear-text`、`input.press/tap/swipe/text`。
 - **不加锁**命令：`doctor/devices/device info`、`screen.*`、`element.find/wait/get-text`、`toast.get/reset`。
 - 等待预算 = `--timeout-ms`；获取不到 → `ACTION_TIMEOUT`，`details.lock="busy"`。
@@ -565,8 +565,8 @@ projection 规则：
 - **CLI 层**：`CliRunner` 跑每个 subcommand，至少 1 成功 + 1 失败。
 - **u2 mock**：`tests/conftest.py` 提供 `fake_device` fixture，行为可注入（`text`、`exists`、`info`、`dump_hierarchy` 等）；通过 `monkeypatch` 替换 `u2.connect`。
 - **契约 golden**：`tests/fixtures/contracts/<command>.success.json` / `.failure.json`，断言 schema 与关键字段（去除 `durationMs`）。
-- **集成**：标 `@pytest.mark.integration`，需 `U2CLI_TEST_SERIAL` 环境变量；CI 默认跳过。
-- 覆盖率门槛：`src/u2cli` 行覆盖 ≥ 85%（不含 `pi/`）。
+- **集成**：标 `@pytest.mark.integration`，需 `ANDROIDTESTCLII_TEST_SERIAL` 环境变量；CI 默认跳过。
+- 覆盖率门槛：`src/androidtestclii` 行覆盖 ≥ 85%（不含 `pi/`）。
 
 ### M. CLI-Anything 接入策略
 
@@ -580,11 +580,11 @@ projection 规则：
 
 - 与设备相关的默认 timeout、重试、循环等待。
 - 任意 Python / shell 执行能力。
-- 任何与 selector 类似的 DSL，`u2cli` 自己定义。
+- 任何与 selector 类似的 DSL，`androidtestclii` 自己定义。
 
 **接入步骤**：
 
-1. 用 CLI-Anything 脚手架生成 `u2cli` 包骨架，确认 `u2cli --help` 可跑。
+1. 用 CLI-Anything 脚手架生成 `androidtestclii` 包骨架，确认 `androidtestclii --help` 可跑。
 2. 把脚手架自带示例命令删除，落入本计划 §B 的目录。
 3. 替换其 result/error/logging 三个模块为本项目契约。
 4. 保留其测试入口，新增 §L 中的 fixture/契约测试。
@@ -592,11 +592,11 @@ projection 规则：
 ### N. 分阶段退出条件
 
 - **Phase 1（骨架）**
-  - `u2cli --json doctor` 返回合法 JSON（即便检查项为 stub）。
-  - `u2cli --help` 列出全部 subcommand 占位。
+  - `androidtestclii --json doctor` 返回合法 JSON（即便检查项为 stub）。
+  - `androidtestclii --help` 列出全部 subcommand 占位。
   - `pytest` 运行 result/errors/CliRunner 烟雾测试全绿。
 - **Phase 2（Device + App）**
-  - 在无设备机器上 `u2cli --json devices` 返回 `devices: []`，退出码 0。
+  - 在无设备机器上 `androidtestclii --json devices` 返回 `devices: []`，退出码 0。
   - mock 设备下 `device info` 字段齐全。
   - `app current/start/stop/clear` 在 mock 下走通成功与 `APP_ACTION_FAILED` 路径。
 - **Phase 3（Screen + Selector）**

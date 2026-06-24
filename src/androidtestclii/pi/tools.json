@@ -1,0 +1,617 @@
+{
+  "name": "AndroidTestClii",
+  "description": "Typed wrappers for AndroidTestClii device automation commands.",
+  "selectorSchema": {
+    "text": "string?",
+    "textContains": "string?",
+    "resourceId": "string?",
+    "description": "string?",
+    "descriptionContains": "string?",
+    "className": "string?",
+    "xpath": "string?",
+    "index": "integer?"
+  },
+  "tools": [
+    {
+      "name": "doctor",
+      "label": "AndroidTestClii doctor",
+      "description": "Run local environment and optional target-device health checks.",
+      "command": ["doctor"],
+      "inputSchema": {}
+    },
+    {
+      "name": "devices",
+      "label": "AndroidTestClii devices",
+      "description": "List attached Android devices.",
+      "command": ["devices"],
+      "inputSchema": {}
+    },
+    {
+      "name": "screen_dump",
+      "label": "AndroidTestClii screen dump",
+      "description": "Dump the selected Android device UI hierarchy.",
+      "command": ["screen", "dump"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "compact": "boolean?",
+        "backend": "string?",
+        "helperApk": "string?",
+        "helperInstallPolicy": "string?",
+        "snapshotJar": "string?",
+        "waitForIdleTimeoutMs": "integer?",
+        "snapshotTimeoutMs": "integer?",
+        "maxDepth": "integer?",
+        "maxNodes": "integer?"
+      }
+    },
+    {
+      "name": "snapshot",
+      "label": "AndroidTestClii snapshot",
+      "description": "Capture an agent-style compact snapshot and refresh local refs.",
+      "command": ["snapshot"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "interactive": "boolean?", "compact": "boolean?", "full": "boolean?"}
+    },
+    {
+      "name": "snapshot_capture",
+      "label": "AndroidTestClii snapshot capture",
+      "description": "Capture a snapshot with explicit compact or full diagnostic semantics.",
+      "command": ["snapshot", "capture"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "interactive": "boolean?", "compact": "boolean?", "full": "boolean?", "targetText": "string?"}
+    },
+    {
+      "name": "diff_screenshot",
+      "label": "AndroidTestClii diff screenshot",
+      "description": "Compare two PNG screenshots and optionally write a diff overlay artifact.",
+      "command": ["diff", "screenshot"],
+      "inputSchema": {"baseline": "string", "current": "string", "threshold": "string?", "out": "string?"},
+      "positionals": ["current"]
+    },
+    {
+      "name": "diff_snapshot",
+      "label": "AndroidTestClii diff snapshot",
+      "description": "Compare the current snapshot against the last session snapshot by node signature.",
+      "command": ["diff", "snapshot"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "screenshot",
+      "label": "AndroidTestClii screenshot",
+      "description": "Capture an agent-style screenshot, optionally overlaying recent snapshot refs.",
+      "command": ["screenshot"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "out": "string?", "overlayRefs": "boolean?"},
+      "positionals": ["out"]
+    },
+    {
+      "name": "logs_start",
+      "label": "AndroidTestClii logs start",
+      "description": "Start Android logcat artifact capture by writing a marker.",
+      "command": ["logs", "start"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "path": "string?", "restart": "boolean?", "confirmed": "boolean?"},
+      "positionals": ["path"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "logs_stop",
+      "label": "AndroidTestClii logs stop",
+      "description": "Stop Android logcat capture and write the marker-filtered logs artifact.",
+      "command": ["logs", "stop"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "logs_clear",
+      "label": "AndroidTestClii logs clear",
+      "description": "Clear Android logcat.",
+      "command": ["logs", "clear"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "restart": "boolean?", "confirmed": "boolean?"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "logs_mark",
+      "label": "AndroidTestClii logs mark",
+      "description": "Write an Android logcat marker message.",
+      "command": ["logs", "mark"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "message": "string?"},
+      "positionals": ["message"]
+    },
+    {
+      "name": "logs_path",
+      "label": "AndroidTestClii logs path",
+      "description": "Report the default and active Android log artifact paths.",
+      "command": ["logs", "path"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "logs_doctor",
+      "label": "AndroidTestClii logs doctor",
+      "description": "Return Android logcat capture diagnostics and next steps.",
+      "command": ["logs", "doctor"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "trace_start",
+      "label": "AndroidTestClii trace start",
+      "description": "Start Android atrace capture and store trace state in the session.",
+      "command": ["trace", "start"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "path": "string?"},
+      "positionals": ["path"]
+    },
+    {
+      "name": "trace_stop",
+      "label": "AndroidTestClii trace stop",
+      "description": "Stop Android atrace capture and write a trace artifact.",
+      "command": ["trace", "stop"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "path": "string?"},
+      "positionals": ["path"]
+    },
+    {
+      "name": "perf_collect",
+      "label": "AndroidTestClii perf collect",
+      "description": "Collect a procfs memory, CPU, and process snapshot.",
+      "command": ["perf", "collect"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "app": "string?", "out": "string?"}
+    },
+    {
+      "name": "network",
+      "label": "AndroidTestClii network",
+      "description": "Extract HTTP and URL clues from logcat or a logs artifact.",
+      "command": ["network"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "include": "string?", "limit": "integer?", "logPath": "string?"}
+    },
+    {
+      "name": "settings",
+      "label": "AndroidTestClii settings",
+      "description": "Write and verify Android settings for animations, wifi, airplane, or permissions.",
+      "command": ["settings"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "setting": "string", "state": "string", "target": "string?", "mode": "string?", "confirmed": "boolean?"},
+      "positionals": ["setting", "state", "target", "mode"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "push",
+      "label": "AndroidTestClii push",
+      "description": "Send an Android broadcast push-style event with JSON extras.",
+      "command": ["push"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "package": "string", "payloadOrJson": "string", "confirmed": "boolean?"},
+      "positionals": ["package", "payloadOrJson"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "trigger_app_event",
+      "label": "AndroidTestClii trigger-app-event",
+      "description": "Start an Android deep-link intent for an app event payload.",
+      "command": ["trigger-app-event"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "event": "string", "payloadJson": "string?", "confirmed": "boolean?"},
+      "positionals": ["event", "payloadJson"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "boot",
+      "label": "AndroidTestClii boot",
+      "description": "Confirm an Android device is online and persist the CLI session.",
+      "command": ["boot"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "headless": "boolean?"}
+    },
+    {
+      "name": "ensure_simulator",
+      "label": "AndroidTestClii ensure-simulator",
+      "description": "Confirm an Android simulator/device is online and persist the CLI session.",
+      "command": ["ensure-simulator"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "boot": "boolean?", "runtime": "string?", "reuseExisting": "boolean?"}
+    },
+    {
+      "name": "click",
+      "label": "AndroidTestClii click",
+      "description": "Click a coordinate, selector target, or @eN snapshot ref.",
+      "command": ["click"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "target": "string",
+        "doubleTap": "boolean?",
+        "holdMs": "integer?",
+        "count": "integer?",
+        "intervalMs": "integer?",
+        "jitterPx": "integer?",
+        "confirmed": "boolean?"
+      },
+      "positionals": ["target"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "fill",
+      "label": "AndroidTestClii fill",
+      "description": "Focus a selector target or @eN ref and type text.",
+      "command": ["fill"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "target": "string",
+        "text": "string",
+        "delayMs": "integer?",
+        "confirmed": "boolean?"
+      },
+      "positionals": ["target", "text"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "get",
+      "label": "AndroidTestClii get",
+      "description": "Read text, attrs, or bounds from a selector target or @eN ref.",
+      "command": ["get"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "attr": "string", "target": "string"},
+      "positionals": ["attr", "target"]
+    },
+    {
+      "name": "wait",
+      "label": "AndroidTestClii wait",
+      "description": "Wait for a selector kind/value and return structured diagnostics.",
+      "command": ["wait"],
+      "inputSchema": {"serial": "string?", "kind": "string", "value": "string", "waitTimeoutMs": "integer"},
+      "optionFlags": {"waitTimeoutMs": "--timeout-ms"},
+      "positionals": ["kind", "value", "waitTimeoutMs"]
+    },
+    {
+      "name": "batch",
+      "label": "AndroidTestClii batch",
+      "description": "Run multiple agent-style AndroidTestClii steps serially.",
+      "command": ["batch"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "steps": "string", "out": "string?", "confirmed": "boolean?"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "replay",
+      "label": "AndroidTestClii replay",
+      "description": "Replay a .ad script with context/env variables and screenshot expectations.",
+      "command": ["replay"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "path": "string", "replayUpdate": "boolean?", "replayEnv": "string?", "confirmed": "boolean?"},
+      "positionals": ["path"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "test",
+      "label": "AndroidTestClii test",
+      "description": "Run one or more .ad replay scripts and optionally write a JUnit report.",
+      "command": ["test"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "paths": "string", "replayUpdate": "boolean?", "replayEnv": "string?", "failFast": "boolean?", "reportJunit": "string?", "confirmed": "boolean?"},
+      "positionals": ["paths"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "gesture",
+      "label": "AndroidTestClii gesture",
+      "description": "Run gesture pan/fling/replay or return a gesture record template.",
+      "command": ["gesture"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "parts": "string", "file": "string?", "confirmed": "boolean?"},
+      "positionals": ["parts"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "record_start",
+      "label": "AndroidTestClii record start",
+      "description": "Start sessionized Android screen recording.",
+      "command": ["record", "start"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "path": "string?", "fps": "integer?", "quality": "integer?", "hideTouches": "boolean?", "confirmed": "boolean?"},
+      "positionals": ["path"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "record_stop",
+      "label": "AndroidTestClii record stop",
+      "description": "Stop sessionized Android screen recording and pull the artifact.",
+      "command": ["record", "stop"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "path": "string?"}
+    },
+    {
+      "name": "react_native",
+      "label": "AndroidTestClii react-native",
+      "description": "Return structured unsupported status for React Native-specific helpers.",
+      "command": ["react-native"],
+      "inputSchema": {"args": "string?"}
+    },
+    {
+      "name": "runtime_status",
+      "label": "AndroidTestClii runtime status",
+      "description": "Inspect AndroidTestClii runtime, snapshot helper, and last snapshot state.",
+      "command": ["runtime", "status"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "runtime_clear",
+      "label": "AndroidTestClii runtime clear",
+      "description": "Clear cached runtime capability state without deleting the selected session.",
+      "command": ["runtime", "clear"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "confirmed": "boolean?"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "session_status",
+      "label": "AndroidTestClii session status",
+      "description": "Inspect the active AndroidTestClii session and stale-device diagnostics.",
+      "command": ["session", "status"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "session_list",
+      "label": "AndroidTestClii session list",
+      "description": "List active AndroidTestClii sessions.",
+      "command": ["session", "list"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "install_from_source",
+      "label": "AndroidTestClii install-from-source",
+      "description": "Install a local APK using the agent-style source command.",
+      "command": ["install-from-source"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "source": "string", "confirmed": "boolean?"},
+      "positionals": ["source"],
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "back",
+      "label": "AndroidTestClii back",
+      "description": "Press Android back.",
+      "command": ["back"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "confirmed": "boolean?"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "home",
+      "label": "AndroidTestClii home",
+      "description": "Press Android home.",
+      "command": ["home"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "confirmed": "boolean?"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "appstate",
+      "label": "AndroidTestClii appstate",
+      "description": "Return the current foreground Android app using the agent-style surface.",
+      "command": ["appstate"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "screen_screenshot",
+      "label": "AndroidTestClii screen screenshot",
+      "description": "Capture a screenshot from the selected Android device.",
+      "command": ["screen", "screenshot"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "out": "string"}
+    },
+    {
+      "name": "screen_size",
+      "label": "AndroidTestClii screen size",
+      "description": "Read Android screen dimensions from the selected device.",
+      "command": ["screen", "size"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "screen_orientation",
+      "label": "AndroidTestClii screen orientation",
+      "description": "Read or set Android screen orientation on the selected device.",
+      "command": ["screen", "orientation"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "set": "string?",
+        "confirmed": "boolean?"
+      },
+      "optionFlags": {"set": "--set"},
+      "mutates": true,
+      "confirmWhen": ["set"]
+    },
+    {
+      "name": "element_find",
+      "label": "AndroidTestClii element find",
+      "description": "Find Android UI elements matching a structured selector.",
+      "command": ["element", "find"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "selector": "Selector"}
+    },
+    {
+      "name": "element_exists",
+      "label": "AndroidTestClii element exists",
+      "description": "Check whether Android UI elements match a structured selector.",
+      "command": ["element", "exists"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "selector": "Selector"}
+    },
+    {
+      "name": "element_wait",
+      "label": "AndroidTestClii element wait",
+      "description": "Wait for an Android UI element matching a selector target or snapshot ref target.",
+      "command": ["element", "wait"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer", "target": "Target"}
+    },
+    {
+      "name": "element_click",
+      "label": "AndroidTestClii element click",
+      "description": "Click one Android UI element matching a selector target or snapshot ref target.",
+      "command": ["element", "click"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "target": "Target",
+        "confirmed": "boolean?"
+      },
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "element_set_text",
+      "label": "AndroidTestClii element set text",
+      "description": "Set text on one Android UI element matching a selector target or snapshot ref target.",
+      "command": ["element", "set-text"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "target": "Target",
+        "text": "string",
+        "confirmed": "boolean?"
+      },
+      "optionFlags": {"target": "--target", "text": "--value"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "element_get_text",
+      "label": "AndroidTestClii element get text",
+      "description": "Read text from one Android UI element matching a structured selector.",
+      "command": ["element", "get-text"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?", "selector": "Selector"}
+    },
+    {
+      "name": "element_clear_text",
+      "label": "AndroidTestClii element clear text",
+      "description": "Clear text on one Android UI element matching a structured selector.",
+      "command": ["element", "clear-text"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "selector": "Selector",
+        "confirmed": "boolean?"
+      },
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "input_tap",
+      "label": "AndroidTestClii input tap",
+      "description": "Tap absolute screen coordinates on the selected Android device.",
+      "command": ["input", "tap"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "x": "integer",
+        "y": "integer",
+        "confirmed": "boolean?"
+      },
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "input_swipe",
+      "label": "AndroidTestClii input swipe",
+      "description": "Swipe between absolute screen coordinates on the selected Android device.",
+      "command": ["input", "swipe"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "from": "point",
+        "to": "point",
+        "durationMs": "integer?",
+        "confirmed": "boolean?"
+      },
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "input_press",
+      "label": "AndroidTestClii input press",
+      "description": "Press an Android key name such as back, home, or enter.",
+      "command": ["input", "press"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "key": "string",
+        "confirmed": "boolean?"
+      },
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "input_text",
+      "label": "AndroidTestClii input text",
+      "description": "Send text input to the selected Android device.",
+      "command": ["input", "text"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "text": "string",
+        "confirmed": "boolean?"
+      },
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "toast_get",
+      "label": "AndroidTestClii toast get",
+      "description": "Read a toast message from the selected Android device.",
+      "command": ["toast", "get"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer"}
+    },
+    {
+      "name": "device_clipboard_get",
+      "label": "AndroidTestClii device clipboard get",
+      "description": "Read Android device clipboard text.",
+      "command": ["device", "clipboard-get"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "device_clipboard_set",
+      "label": "AndroidTestClii device clipboard set",
+      "description": "Set Android device clipboard text.",
+      "command": ["device", "clipboard-set"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "text": "string",
+        "confirmed": "boolean?"
+      },
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "app_current",
+      "label": "AndroidTestClii app current",
+      "description": "Return the current foreground Android app.",
+      "command": ["app", "current"],
+      "inputSchema": {"serial": "string?", "timeoutMs": "integer?"}
+    },
+    {
+      "name": "app_launch",
+      "label": "AndroidTestClii app launch",
+      "description": "Launch an Android app package.",
+      "command": ["app", "launch"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "package": "string",
+        "activity": "string?",
+        "wait": "boolean?",
+        "stopBeforeLaunch": "boolean?",
+        "confirmed": "boolean?"
+      },
+      "optionFlags": {"stopBeforeLaunch": "--stop-before-launch"},
+      "mutates": true,
+      "confirm": true
+    },
+    {
+      "name": "app_stop",
+      "label": "AndroidTestClii app stop",
+      "description": "Stop an Android app package.",
+      "command": ["app", "stop"],
+      "inputSchema": {
+        "serial": "string?",
+        "timeoutMs": "integer?",
+        "package": "string",
+        "confirmed": "boolean?"
+      },
+      "mutates": true,
+      "confirm": true
+    }
+  ]
+}

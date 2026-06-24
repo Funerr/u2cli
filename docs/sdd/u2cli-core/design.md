@@ -1,14 +1,14 @@
-# Android CLI Core Design
+# AndroidTestClii Core Design
 
-- **Spec ID**：`u2cli-core`
+- **Spec ID**：`androidtestclii-core`
 - **Status**：`Implemented`
-- **Owner**：`u2cli maintainers`
+- **Owner**：`androidtestclii maintainers`
 - **Last Updated**：`2026-05-27`
 - **Source Requirements**：`./requirements.md`
 
 ## Design Summary
 
-Android CLI 采用 Typer CLI，推荐入口为 `android-cli`，兼容入口为 `u2cli`。CLI 层负责参数解析、上下文构造、错误归一化和 JSON 渲染；命令模块负责具体 Android 能力；纯函数和适配层负责 selector、结果模型、锁、timeout、dump projection 和 Pi schema。现有元素与 watcher 能力主要走 `uiautomator2`，但 screen snapshot、设备诊断和后续 catch-up 能力可按场景使用 ADB、snapshot helper、JAR 或 u2 后端。
+AndroidTestClii 采用 Typer CLI，推荐入口为 `AndroidTestClii`，兼容入口为 `android-cli` 和 `androidtestclii`。CLI 层负责参数解析、上下文构造、错误归一化和 JSON 渲染；命令模块负责具体 Android 能力；纯函数和适配层负责 selector、结果模型、锁、timeout、dump projection 和 Pi schema。现有元素与 watcher 能力主要走 `uiautomator2`，但 screen snapshot、设备诊断和后续 catch-up 能力可按场景使用 ADB、snapshot helper、JAR 或 u2 后端。
 
 ## Requirement Mapping
 
@@ -83,7 +83,7 @@ Selector 使用结构化模型，字段包括：
 
 **Covers**：`REQ-CORE-004`
 
-变更型命令按 serial 使用文件锁，锁目录位于系统临时目录下的 `u2cli/locks`。读命令不加锁。
+变更型命令按 serial 使用文件锁，锁目录位于系统临时目录下的 `androidtestclii/locks`。读命令不加锁。
 
 所有同步设备调用通过 timeout 包装；锁等待也计入 timeout 预算。timeout 失败统一返回 `ACTION_TIMEOUT`。
 

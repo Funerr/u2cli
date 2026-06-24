@@ -1,1 +1,7 @@
-"""Agent-device style top-level command helpers."""
+from __future__ import annotations
+
+import importlib
+import sys
+
+_module = importlib.import_module("androidtestclii.agent")
+sys.modules[__name__] = _module

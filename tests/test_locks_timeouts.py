@@ -4,11 +4,11 @@ import time
 
 import pytest
 
-from u2cli.context import CommandContext
-from u2cli.errors import U2CliError
-from u2cli.input.commands import press
-from u2cli.locks import serial_lock
-from u2cli.timeouts import run_with_timeout
+from androidtestclii.context import CommandContext
+from androidtestclii.errors import U2CliError
+from androidtestclii.input.commands import press
+from androidtestclii.locks import serial_lock
+from androidtestclii.timeouts import run_with_timeout
 
 
 def test_run_with_timeout_raises_action_timeout() -> None:
@@ -35,7 +35,7 @@ def test_mutation_lock_wraps_connection(monkeypatch: pytest.MonkeyPatch) -> None
         called = True
         return object()
 
-    monkeypatch.setattr("u2cli.input.commands.connect_device", connect_device)
+    monkeypatch.setattr("androidtestclii.input.commands.connect_device", connect_device)
     ctx = CommandContext.start(serial="test-serial", timeout_ms=10)
 
     with serial_lock("test-serial", 100):

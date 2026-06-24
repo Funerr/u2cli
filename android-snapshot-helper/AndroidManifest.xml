@@ -1,31 +1,31 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.callstack.ata.snapshothelper">
+    package="com.callstack.androidtestclii.snapshothelper">
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="36" />
 
     <application
         android:debuggable="false"
-        android:label="ATA Snapshot Helper"
+        android:label="AndroidTestClii Snapshot Helper"
         android:testOnly="true"
         android:theme="@android:style/Theme.NoDisplay">
 
         <service
             android:name=".ToastAccessibilityService"
             android:exported="true"
-            android:label="ATA Toast Listener"
+            android:label="AndroidTestClii Toast Listener"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
-                android:resource="@xml/ata_toast_accessibility_service" />
+                android:resource="@xml/androidtestclii_toast_accessibility_service" />
         </service>
     </application>
 
     <instrumentation
         android:name=".SnapshotInstrumentation"
-        android:targetPackage="com.callstack.ata.snapshothelper"
-        android:label="ATA Snapshot Helper"
+        android:targetPackage="com.callstack.androidtestclii.snapshothelper"
+        android:label="AndroidTestClii Snapshot Helper"
         android:functionalTest="true" />
 </manifest>

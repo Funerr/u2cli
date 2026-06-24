@@ -6,20 +6,20 @@ from typing import Any
 
 import pytest
 
-from u2cli.agent import alert as agent_alert
-from u2cli.agent import commands as agent_commands
-from u2cli.app import commands as app_commands
-import u2cli.cli as cli_module
-from u2cli.context import CommandContext
-from u2cli.device import commands as device_commands
-from u2cli.device import health
-from u2cli.device.connect import AdbDevice
-from u2cli.errors import ErrorCode, U2CliError
-from u2cli.screen import commands as screen_commands
-from u2cli.screen import screenshot as screen_screenshot
-from u2cli.session import commands as session_commands
-from u2cli.session import store as session_store
-from u2cli.watcher import commands as watcher_commands
+from androidtestclii.agent import alert as agent_alert
+from androidtestclii.agent import commands as agent_commands
+from androidtestclii.app import commands as app_commands
+import androidtestclii.cli as cli_module
+from androidtestclii.context import CommandContext
+from androidtestclii.device import commands as device_commands
+from androidtestclii.device import health
+from androidtestclii.device.connect import AdbDevice
+from androidtestclii.errors import ErrorCode, U2CliError
+from androidtestclii.screen import commands as screen_commands
+from androidtestclii.screen import screenshot as screen_screenshot
+from androidtestclii.session import commands as session_commands
+from androidtestclii.session import store as session_store
+from androidtestclii.watcher import commands as watcher_commands
 
 
 class ShellResult:
@@ -120,7 +120,7 @@ def ctx(serial: str = "emulator-5554", timeout_ms: int = 1000) -> CommandContext
 
 def test_session_store_round_trip_and_ref_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     path = tmp_path / "session.json"
-    monkeypatch.setenv("U2CLI_SESSION_PATH", str(path))
+    monkeypatch.setenv("ANDROIDTESTCLII_SESSION_PATH", str(path))
 
     state = session_store.update_session(serial="emulator-5554", timeout_ms=1234)
     assert state.serial == "emulator-5554"
@@ -154,7 +154,7 @@ def test_session_store_round_trip_and_ref_errors(tmp_path: Path, monkeypatch: py
 
 def test_app_commands_shell_and_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     device = MiniDevice()
-    monkeypatch.setattr("u2cli.app.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.app.commands.connect_device", lambda serial, timeout_ms: device)
     apk = tmp_path / "app.apk"
     apk.write_bytes(b"apk")
 
@@ -178,7 +178,7 @@ def test_device_commands_shell_restrictions_and_fallbacks(
     tmp_path: Path,
 ) -> None:
     device = MiniDevice()
-    monkeypatch.setattr("u2cli.device.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.device.commands.connect_device", lambda serial, timeout_ms: device)
 
     assert device_commands.shell(ctx(), "getprop ro.product.model")["output"] == "ok"
     with pytest.raises(U2CliError):
@@ -202,14 +202,14 @@ def test_device_commands_shell_restrictions_and_fallbacks(
 
 
 def test_health_branches(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("u2cli.device.health.adb_path", lambda: "/usr/bin/adb")
-    monkeypatch.setattr("u2cli.device.health.adb_version", lambda: "Android Debug Bridge")
+    monkeypatch.setattr("androidtestclii.device.health.adb_path", lambda: "/usr/bin/adb")
+    monkeypatch.setattr("androidtestclii.device.health.adb_version", lambda: "Android Debug Bridge")
     monkeypatch.setattr(
-        "u2cli.device.health.list_adb_devices",
+        "androidtestclii.device.health.list_adb_devices",
         lambda: [AdbDevice("emulator-5554", "device")],
     )
-    monkeypatch.setattr("u2cli.device.health.import_u2", lambda: type("U2", (), {"__version__": "3"})())
-    monkeypatch.setattr("u2cli.device.health.connect_device", lambda serial, timeout_ms: object())
+    monkeypatch.setattr("androidtestclii.device.health.import_u2", lambda: type("U2", (), {"__version__": "3"})())
+    monkeypatch.setattr("androidtestclii.device.health.connect_device", lambda serial, timeout_ms: object())
     data = health.doctor_data(ctx())
     assert data["adb"]["ok"] is True
     assert any(check["name"] == "u2-connect" and check["ok"] for check in data["checks"])
@@ -246,8 +246,8 @@ def test_screen_commands_and_screenshot_branches(monkeypatch: pytest.MonkeyPatch
             return Image()
 
     device = ScreenDevice()
-    monkeypatch.setattr("u2cli.screen.commands.connect_device", lambda serial, timeout_ms: device)
-    monkeypatch.setattr("u2cli.screen.screenshot.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.screen.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.screen.screenshot.connect_device", lambda serial, timeout_ms: device)
 
     assert screen_commands.orientation_get(ctx())["orientation"] == "natural"
     assert screen_commands.orientation_set(ctx(), "left")["orientation"] == "left"
@@ -269,7 +269,7 @@ def test_screen_commands_and_screenshot_branches(monkeypatch: pytest.MonkeyPatch
 
 def test_watcher_xpath_and_lifecycle(monkeypatch: pytest.MonkeyPatch) -> None:
     device = WatcherDevice()
-    monkeypatch.setattr("u2cli.watcher.commands.connect_device", lambda serial, timeout_ms: device)
+    monkeypatch.setattr("androidtestclii.watcher.commands.connect_device", lambda serial, timeout_ms: device)
 
     added = watcher_commands.add(ctx(), "allow", "Allow", "com.example:id/ok", "OK")
     assert added["added"] is True
@@ -280,14 +280,14 @@ def test_watcher_xpath_and_lifecycle(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_agent_alert_and_batch_out(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("u2cli.agent.alert.scan_candidates", lambda context: [])
+    monkeypatch.setattr("androidtestclii.agent.alert.scan_candidates", lambda context: [])
     waited = agent_alert.wait(ctx(), 1)
     assert waited["present"] is False
     with pytest.raises(U2CliError) as exc:
         agent_alert.accept(ctx(), 1)
     assert exc.value.code == ErrorCode.ALERT_NOT_FOUND
 
-    monkeypatch.setattr("u2cli.agent.commands.back", lambda context: {"pressed": True})
+    monkeypatch.setattr("androidtestclii.agent.commands.back", lambda context: {"pressed": True})
     out = tmp_path / "batch.json"
     data, artifacts = agent_commands.batch(ctx(), json.dumps([{"command": "back"}]), str(out))
     assert data["failed"] is None
@@ -300,7 +300,7 @@ def test_batch_success_cli_uses_top_level_contract(
     fake_device: Any,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    monkeypatch.setattr("u2cli.agent.commands.back", lambda context: {"pressed": True})
+    monkeypatch.setattr("androidtestclii.agent.commands.back", lambda context: {"pressed": True})
 
     try:
         cli_module.main(["--serial", "emulator-5554", "batch", "--steps", json.dumps([{"command": "back"}])])
@@ -314,12 +314,13 @@ def test_batch_success_cli_uses_top_level_contract(
     assert payload["success"] is True
     assert payload["steps"][0]["success"] is True
     assert payload["failed"] is None
+    assert payload["metadata"]["capabilityLayer"] == "adb-fast-path"
     assert "data" not in payload
 
 
 def test_agent_connection_and_keyboard(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "u2cli.agent.commands.list_adb_devices",
+        "androidtestclii.agent.commands.list_adb_devices",
         lambda: [AdbDevice("emulator-5554", "device")],
     )
     assert agent_commands.connect(ctx(serial=None))["serial"] == "emulator-5554"
@@ -327,7 +328,7 @@ def test_agent_connection_and_keyboard(monkeypatch: pytest.MonkeyPatch) -> None:
     assert agent_commands.disconnect(ctx())["disconnected"] is True
 
     monkeypatch.setattr(
-        "u2cli.agent.commands.device_commands.shell",
+        "androidtestclii.agent.commands.device_commands.shell",
         lambda context, command: {"output": "mInputShown=true\nmCurId=ime\nmServedView=view"},
     )
     assert agent_commands.keyboard_status(ctx())["shown"] is True
@@ -335,15 +336,15 @@ def test_agent_connection_and_keyboard(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_agent_connect_address_calls_adb_and_verifies_online(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr("u2cli.agent.commands.adb_path", lambda: "/usr/bin/adb")
+    monkeypatch.setattr("androidtestclii.agent.commands.adb_path", lambda: "/usr/bin/adb")
 
     def run(args: list[str], **kwargs: Any) -> Any:
         calls.append(args)
         return type("Proc", (), {"returncode": 0, "stdout": "connected", "stderr": ""})()
 
-    monkeypatch.setattr("u2cli.agent.commands.subprocess.run", run)
+    monkeypatch.setattr("androidtestclii.agent.commands.subprocess.run", run)
     monkeypatch.setattr(
-        "u2cli.agent.commands.list_adb_devices",
+        "androidtestclii.agent.commands.list_adb_devices",
         lambda: [AdbDevice("1.2.3.4:5555", "device")],
     )
 
@@ -356,13 +357,13 @@ def test_agent_connect_address_calls_adb_and_verifies_online(monkeypatch: pytest
 
 def test_agent_disconnect_remote_calls_adb(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr("u2cli.agent.commands.adb_path", lambda: "/usr/bin/adb")
+    monkeypatch.setattr("androidtestclii.agent.commands.adb_path", lambda: "/usr/bin/adb")
 
     def run(args: list[str], **kwargs: Any) -> Any:
         calls.append(args)
         return type("Proc", (), {"returncode": 0, "stdout": "disconnected", "stderr": ""})()
 
-    monkeypatch.setattr("u2cli.agent.commands.subprocess.run", run)
+    monkeypatch.setattr("androidtestclii.agent.commands.subprocess.run", run)
     result = agent_commands.disconnect(ctx(serial="127.0.0.1:5555"))
 
     assert result["sessionCleared"] is True
@@ -373,7 +374,7 @@ def test_snapshot_ref_cache_is_not_used_across_serials(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    monkeypatch.setenv("U2CLI_SESSION_PATH", str(tmp_path / "session.json"))
+    monkeypatch.setenv("ANDROIDTESTCLII_SESSION_PATH", str(tmp_path / "session.json"))
     session_store.update_session(
         serial="device-a",
         last_snapshot=session_store.LastSnapshot(
@@ -391,7 +392,7 @@ def test_snapshot_ref_cache_is_not_used_across_serials(
 
     clicked: list[dict[str, Any]] = []
     monkeypatch.setattr(
-        "u2cli.agent.commands.element_action.click",
+        "androidtestclii.agent.commands.element_action.click",
         lambda context, selector: clicked.append(selector.public_dict()) or {"clicked": True},
     )
 
@@ -401,7 +402,7 @@ def test_snapshot_ref_cache_is_not_used_across_serials(
     assert clicked == [{"text": "Login"}]
 
     monkeypatch.setattr(
-        "u2cli.agent.commands.element_action.get_text",
+        "androidtestclii.agent.commands.element_action.get_text",
         lambda context, selector: {"text": "Queried", "selector": selector.public_dict()},
     )
 

@@ -8,9 +8,32 @@ from pathlib import Path
 
 import pytest
 
-TOOL_PREFIXES = ("android_cli_", "u2cli_")
+TOOL_PREFIXES = ("AndroidTestClii_", "android_cli_", "u2cli_")
 
 REQUIRED_TOOLS = {
+    "AndroidTestClii_doctor",
+    "AndroidTestClii_devices",
+    "AndroidTestClii_screen_dump",
+    "AndroidTestClii_screen_screenshot",
+    "AndroidTestClii_screen_size",
+    "AndroidTestClii_screen_orientation",
+    "AndroidTestClii_element_find",
+    "AndroidTestClii_element_exists",
+    "AndroidTestClii_element_wait",
+    "AndroidTestClii_element_click",
+    "AndroidTestClii_element_set_text",
+    "AndroidTestClii_element_get_text",
+    "AndroidTestClii_element_clear_text",
+    "AndroidTestClii_input_tap",
+    "AndroidTestClii_input_swipe",
+    "AndroidTestClii_input_press",
+    "AndroidTestClii_input_text",
+    "AndroidTestClii_toast_get",
+    "AndroidTestClii_device_clipboard_get",
+    "AndroidTestClii_device_clipboard_set",
+    "AndroidTestClii_app_current",
+    "AndroidTestClii_app_launch",
+    "AndroidTestClii_app_stop",
     "android_cli_doctor",
     "android_cli_devices",
     "android_cli_screen_dump",
@@ -61,7 +84,7 @@ REQUIRED_TOOLS = {
 
 
 def _schema_tools_where(mutating: bool | None = None) -> set[str]:
-    schema = json.loads(Path("src/u2cli/pi/tools.json").read_text(encoding="utf-8"))
+    schema = json.loads(Path("src/androidtestclii/pi/tools.json").read_text(encoding="utf-8"))
     names = set()
     for spec in schema["tools"]:
         is_mutating = bool(spec.get("mutates") or spec.get("confirm") or spec.get("confirmWhen"))
@@ -112,6 +135,7 @@ def _prepare_extension_fixture(tmp_path: Path, settings: dict[str, object] | Non
           Number: schema("number"),
           Boolean: schema("boolean"),
           Optional: (inner) => ({ ...inner, optional: true }),
+          Union: (items) => ({ anyOf: items }),
           Tuple: (items) => ({ type: "array", items }),
           Object: (properties, options = {}) => ({ type: "object", properties, ...options }),
         };
@@ -131,7 +155,7 @@ def _prepare_extension_fixture(tmp_path: Path, settings: dict[str, object] | Non
     script = tmp_path / "smoke.mjs"
     script.write_text(
         """
-        import extension from "./extensions/u2cli.ts";
+        import extension from "./extensions/androidtestclii.ts";
         const tools = [];
         extension({
           on() {},
@@ -175,7 +199,7 @@ def test_pi_package_manifest_points_to_extensions_dir() -> None:
     }
 
 
-def test_pi_extension_registers_required_u2cli_tools(tmp_path: Path) -> None:
+def test_pi_extension_registers_required_androidtestclii_tools(tmp_path: Path) -> None:
     registered = _registered_tools(tmp_path)
 
     assert REQUIRED_TOOLS <= registered
@@ -202,6 +226,6 @@ def test_pi_extension_role_gate_exposes_no_tools_to_memory_role(tmp_path: Path) 
 
 
 def test_pi_extension_project_settings_can_require_agent_role(tmp_path: Path) -> None:
-    registered = _registered_tools(tmp_path, settings={"u2cli": {"requireAgentRole": True}})
+    registered = _registered_tools(tmp_path, settings={"AndroidTestClii": {"requireAgentRole": True}})
 
     assert registered == set()

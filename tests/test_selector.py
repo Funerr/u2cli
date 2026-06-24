@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from u2cli.element.selector import bounds_to_list, from_target, parse_target_selector, selector_from_kwargs
-from u2cli.session.store import LastSnapshot, SnapshotRef, update_session
-from u2cli.errors import U2CliError
+from androidtestclii.element.selector import bounds_to_list, from_target, parse_target_selector, selector_from_kwargs
+from androidtestclii.session.store import LastSnapshot, SnapshotRef, update_session
+from androidtestclii.errors import U2CliError
 
 
 def test_selector_aliases_and_payload() -> None:
@@ -46,7 +46,7 @@ def test_parse_target_selector_aliases() -> None:
 
 
 def test_from_target_resolves_snapshot_ref(monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.setenv("U2CLI_SESSION_PATH", str(tmp_path / "session.json"))
+    monkeypatch.setenv("ANDROIDTESTCLII_SESSION_PATH", str(tmp_path / "session.json"))
     update_session(
         serial="emulator-5554",
         last_snapshot=LastSnapshot(

@@ -6,10 +6,10 @@ HELPER_DIR="$ROOT_DIR/android-snapshot-helper"
 VERSION="${1:-0.1.0}"
 OUT_DIR="${2:-$HELPER_DIR/dist}"
 
-PACKAGE_NAME="com.callstack.ata.snapshothelper"
+PACKAGE_NAME="com.callstack.androidtestclii.snapshothelper"
 MIN_SDK=23
 TARGET_SDK=36
-APK_NAME="u2cli-android-snapshot-helper-$VERSION.apk"
+APK_NAME="androidtestclii-android-snapshot-helper-$VERSION.apk"
 
 ANDROID_HOME_VALUE="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/homebrew/share/android-commandlinetools}}"
 ANDROID_JAR="$ANDROID_HOME_VALUE/platforms/android-$TARGET_SDK/android.jar"
@@ -122,7 +122,7 @@ cat > "$APK_PATH.manifest.json" <<EOF
   "minSdk": $MIN_SDK,
   "targetSdk": $TARGET_SDK,
   "outputFormat": "uiautomator-xml",
-  "statusProtocol": "android-snapshot-helper-v1",
+  "statusProtocol": "androidtestclii-snapshot-helper-v1",
   "installArgs": ["install", "-r", "-t"]
 }
 EOF

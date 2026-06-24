@@ -1,9 +1,9 @@
 # Agent Device Catchup Design
 
 - **Spec ID**：`agent-device-catchup`
-- **Status**：`Draft`
-- **Owner**：`u2cli maintainers`
-- **Last Updated**：`2026-05-27`
+- **Status**：`Implemented`
+- **Owner**：`androidtestclii maintainers`
+- **Last Updated**：`2026-05-28`
 - **Source Requirements**：`./requirements.md`
 
 ## Design Summary
@@ -38,7 +38,7 @@ unknown
 unsupported
 ```
 
-结果 metadata 建议放入 `data.metadata`，避免破坏 `u2cli-core` 顶层字段。需要披露：
+结果 metadata 建议放入 `data.metadata`，避免破坏 `androidtestclii-core` 顶层字段。需要披露：
 
 - `capabilityLayer`
 - `fallbackUsed`
@@ -102,7 +102,7 @@ settings 命令必须写后读回，失败返回实际状态。push 和 trigger-
 
 定义最小 `.ad` 脚本格式：
 
-- 每行一条 Android CLI 命令；推荐写 `android-cli`，兼容脚本可继续写 `u2cli`。
+- 每行一条 AndroidTestClii 命令；推荐写 `AndroidTestClii`，兼容脚本可继续写 `androidtestclii`。
 - 支持 `context` 和 `env`。
 - 支持 shell 风格引号和 `${VAR}` 变量。
 - 支持注释型视觉断言，如 `# expect-screenshot baseline=... threshold=...`。

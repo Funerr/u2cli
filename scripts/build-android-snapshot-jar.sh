@@ -77,10 +77,10 @@ javac --release 11 \
   "$CLASSES_JAR" \
   "$RUNTIME_STUBS_JAR"
 
-JAR_NAME="u2cli-android-snapshot-jar-$VERSION.jar"
+JAR_NAME="androidtestclii-android-snapshot-jar-$VERSION.jar"
 (cd "$DEX_DIR" && jar cf "$OUT_DIR/$JAR_NAME" classes.dex)
 shasum -a 256 "$OUT_DIR/$JAR_NAME" | awk '{print $1}' > "$OUT_DIR/$JAR_NAME.sha256"
-printf '{"assetName":"%s","version":"%s","protocol":"u2cli-android-snapshot-jar-v1","entryClass":"io.github.funerr.u2cli.snapshotjar.SnapshotDump"}\n' \
+printf '{"assetName":"%s","version":"%s","protocol":"androidtestclii-android-snapshot-jar-v1","entryClass":"io.github.funerr.androidtestclii.snapshotjar.SnapshotDump"}\n' \
   "$JAR_NAME" "$VERSION" > "$OUT_DIR/$JAR_NAME.manifest.json"
 
 echo "$OUT_DIR/$JAR_NAME"

@@ -9,8 +9,8 @@ from typing import Any
 
 import pytest
 
-from u2cli.errors import ErrorCode, U2CliError
-from u2cli.screen.snapshot_backend import (
+from androidtestclii.errors import ErrorCode, U2CliError
+from androidtestclii.screen.snapshot_backend import (
     ANDROID_JAR_METADATA_PREFIX,
     ANDROID_JAR_XML_CHUNK_PREFIX,
     AdbResult,
@@ -63,7 +63,7 @@ class DumpDevice:
 
 def jar_output(xml: str = XML, *, ok: bool = True, error_type: str | None = None) -> str:
     metadata: dict[str, object] = {
-        "protocol": "u2cli-android-snapshot-jar-v1",
+        "protocol": "androidtestclii-android-snapshot-jar-v1",
         "helperApiVersion": "1",
         "outputFormat": "uiautomator-xml",
         "ok": ok,
@@ -82,9 +82,9 @@ def jar_output(xml: str = XML, *, ok: bool = True, error_type: str | None = None
     return "\n".join(
         [
             "noise from uiautomator runner",
-            f"U2CLI_SNAPSHOT_METADATA_BASE64:{metadata_payload}",
-            f"U2CLI_SNAPSHOT_XML_CHUNK:0/1:{xml_payload}",
-            "U2CLI_SNAPSHOT_DONE",
+            f"ANDROIDTESTCLII_SNAPSHOT_METADATA_BASE64:{metadata_payload}",
+            f"ANDROIDTESTCLII_SNAPSHOT_XML_CHUNK:0/1:{xml_payload}",
+            "ANDROIDTESTCLII_SNAPSHOT_DONE",
         ]
     )
 
@@ -95,19 +95,19 @@ def helper_manifest(apk: Path) -> dict[str, Any]:
         "version": "0.1.0",
         "assetName": apk.name,
         "sha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
-        "packageName": "com.callstack.ata.snapshothelper",
+        "packageName": "com.callstack.androidtestclii.snapshothelper",
         "versionCode": 1000,
-        "instrumentationRunner": "com.callstack.ata.snapshothelper/.SnapshotInstrumentation",
+        "instrumentationRunner": "com.callstack.androidtestclii.snapshothelper/.SnapshotInstrumentation",
         "minSdk": 23,
         "targetSdk": 36,
         "outputFormat": "uiautomator-xml",
-        "statusProtocol": "android-snapshot-helper-v1",
+        "statusProtocol": "androidtestclii-snapshot-helper-v1",
         "installArgs": ["install", "-r", "-t"],
     }
 
 
 def helper_record(prefix: str, values: dict[str, str]) -> str:
-    lines = [f"{prefix}: ataProtocol=android-snapshot-helper-v1"]
+    lines = [f"{prefix}: androidtestcliiProtocol=androidtestclii-snapshot-helper-v1"]
     lines.extend(f"{prefix}: {key}={value}" for key, value in values.items())
     return "\n".join(lines)
 
@@ -187,7 +187,7 @@ def helper_output(
 
 
 def helper_artifact(tmp_path: Path) -> SnapshotHelperArtifact:
-    apk = tmp_path / "u2cli-android-snapshot-helper-0.1.0.apk"
+    apk = tmp_path / "androidtestclii-android-snapshot-helper-0.1.0.apk"
     apk.write_bytes(b"helper-apk")
     return SnapshotHelperArtifact(str(apk), helper_manifest(apk))
 
@@ -257,7 +257,7 @@ def test_capture_with_helper_installs_and_runs_instrumentation(tmp_path: Path) -
     assert capture.metadata["backend"] == "android-snapshot-helper"
     assert capture.metadata["install"]["reason"] == "missing"
     assert capture.metadata["toastCapture"]["latest"]["text"] == "保存成功!"
-    assert calls[0][-1] == "com.callstack.ata.snapshothelper"
+    assert calls[0][-1] == "com.callstack.androidtestclii.snapshothelper"
     assert calls[1] == ["install", "-r", "-t", artifact.apk_path]
     assert calls[2][:7] == ["shell", "am", "instrument", "-w", "-e", "action", "snapshot"]
 
@@ -271,7 +271,7 @@ def test_ensure_snapshot_helper_skips_current_version(tmp_path: Path) -> None:
         return AdbResult(
             args=args,
             exit_code=0,
-            stdout="package:com.callstack.ata.snapshothelper versionCode:1000",
+            stdout="package:com.callstack.androidtestclii.snapshothelper versionCode:1000",
             stderr="",
         )
 
@@ -292,7 +292,7 @@ def test_ensure_snapshot_helper_skips_current_version(tmp_path: Path) -> None:
             "list",
             "packages",
             "--show-versioncode",
-            "com.callstack.ata.snapshothelper",
+            "com.callstack.androidtestclii.snapshothelper",
         ]
     ]
 
@@ -331,7 +331,7 @@ def test_ensure_snapshot_helper_caches_successful_install(tmp_path: Path) -> Non
             "list",
             "packages",
             "--show-versioncode",
-            "com.callstack.ata.snapshothelper",
+            "com.callstack.androidtestclii.snapshothelper",
         ],
         ["install", "-r", "-t", artifact.apk_path],
     ]
@@ -353,7 +353,7 @@ def test_capture_snapshot_auto_uses_helper_when_available(
             return AdbResult(args=args, exit_code=0, stdout="Success", stderr="")
         return AdbResult(args=args, exit_code=0, stdout=helper_output(), stderr="")
 
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.resolve_snapshot_helper", lambda path: artifact)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.resolve_snapshot_helper", lambda path: artifact)
 
     capture = capture_snapshot(
         device,
@@ -380,7 +380,7 @@ def test_parse_jar_output_decodes_chunks_and_metadata() -> None:
 
 
 def test_capture_with_jar_pushes_and_runs_uiautomator_runtest(tmp_path: Path) -> None:
-    snapshot_jar = tmp_path / "u2cli-android-snapshot-jar-0.1.0.jar"
+    snapshot_jar = tmp_path / "androidtestclii-android-snapshot-jar-0.1.0.jar"
     snapshot_jar.write_bytes(b"jar")
     calls: list[list[str]] = []
 
@@ -404,13 +404,13 @@ def test_capture_with_jar_pushes_and_runs_uiautomator_runtest(tmp_path: Path) ->
     assert calls[0] == [
         "push",
         str(snapshot_jar),
-        "/data/local/tmp/u2cli-android-snapshot.jar",
+        "/data/local/tmp/androidtestclii-android-snapshot.jar",
     ]
     assert calls[1][:5] == [
         "shell",
         "uiautomator",
         "runtest",
-        "/data/local/tmp/u2cli-android-snapshot.jar",
+        "/data/local/tmp/androidtestclii-android-snapshot.jar",
         "-c",
     ]
 
@@ -430,7 +430,7 @@ def test_capture_snapshot_auto_uses_jar_when_helper_missing(
             return AdbResult(args=args, exit_code=0, stdout="pushed", stderr="")
         return AdbResult(args=args, exit_code=0, stdout=jar_output(), stderr="")
 
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.resolve_snapshot_helper", lambda path: None)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.resolve_snapshot_helper", lambda path: None)
 
     capture = capture_snapshot(
         device,
@@ -456,8 +456,8 @@ def test_capture_snapshot_auto_falls_back_to_adb_when_jar_missing(
         calls.append(args)
         return AdbResult(args=args, exit_code=0, stdout=XML, stderr="")
 
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.resolve_snapshot_helper", lambda path: None)
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.resolve_snapshot_jar", lambda path: None)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.resolve_snapshot_helper", lambda path: None)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.resolve_snapshot_jar", lambda path: None)
 
     capture = capture_snapshot(
         device,
@@ -518,7 +518,7 @@ def test_capture_snapshot_auto_skips_stock_fallback_on_helper_timeout(
             stderr="",
         )
 
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.resolve_snapshot_helper", lambda path: artifact)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.resolve_snapshot_helper", lambda path: artifact)
 
     with pytest.raises(U2CliError) as exc:
         capture_snapshot(
@@ -587,11 +587,11 @@ def test_helper_parser_error_branches() -> None:
         )
 
     records = parse_instrumentation_records(
-        "INSTRUMENTATION_STATUS: ataProtocol=android-snapshot-helper-v1\n"
-        "INSTRUMENTATION_RESULT: ataProtocol=android-snapshot-helper-v1\n"
+        "INSTRUMENTATION_STATUS: androidtestcliiProtocol=androidtestclii-snapshot-helper-v1\n"
+        "INSTRUMENTATION_RESULT: androidtestcliiProtocol=androidtestclii-snapshot-helper-v1\n"
     )
-    assert records["status"][0]["ataProtocol"] == "android-snapshot-helper-v1"
-    assert records["results"][0]["ataProtocol"] == "android-snapshot-helper-v1"
+    assert records["status"][0]["androidtestcliiProtocol"] == "androidtestclii-snapshot-helper-v1"
+    assert records["results"][0]["androidtestcliiProtocol"] == "androidtestclii-snapshot-helper-v1"
 
 
 def test_jar_parser_error_branches() -> None:
@@ -600,7 +600,7 @@ def test_jar_parser_error_branches() -> None:
         parse_jar_output("")
     with pytest.raises(U2CliError):
         parse_jar_output(f"{ANDROID_JAR_METADATA_PREFIX}{metadata}")
-    good_meta = base64.b64encode(json.dumps({"protocol": "u2cli-android-snapshot-jar-v1"}).encode()).decode()
+    good_meta = base64.b64encode(json.dumps({"protocol": "androidtestclii-android-snapshot-jar-v1"}).encode()).decode()
     bad_lines = [
         f"{ANDROID_JAR_METADATA_PREFIX}{good_meta}\n{ANDROID_JAR_XML_CHUNK_PREFIX}bad",
         f"{ANDROID_JAR_METADATA_PREFIX}{good_meta}\n{ANDROID_JAR_XML_CHUNK_PREFIX}x/1:AAAA",
@@ -667,24 +667,24 @@ def test_snapshot_backend_small_helpers(tmp_path: Path, monkeypatch: pytest.Monk
 
 
 def test_run_adb_branches(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.adb_path", lambda: None)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.adb_path", lambda: None)
     with pytest.raises(U2CliError) as exc:
         run_adb(None, ["devices"])
     assert exc.value.code == ErrorCode.ADB_NOT_FOUND
 
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.adb_path", lambda: "/usr/bin/adb")
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.adb_path", lambda: "/usr/bin/adb")
 
     def ok(command, **kwargs):
         return subprocess.CompletedProcess(command, 0, stdout="out", stderr="")
 
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.subprocess.run", ok)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.subprocess.run", ok)
     result = run_adb("serial", ["devices"])
     assert result.stdout == "out"
 
     def fail(command, **kwargs):
         return subprocess.CompletedProcess(command, 2, stdout="", stderr="bad")
 
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.subprocess.run", fail)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.subprocess.run", fail)
     with pytest.raises(U2CliError):
         run_adb(None, ["devices"])
     assert run_adb(None, ["devices"], allow_failure=True).exit_code == 2
@@ -692,7 +692,7 @@ def test_run_adb_branches(monkeypatch: pytest.MonkeyPatch) -> None:
     def timeout(command, **kwargs):
         raise subprocess.TimeoutExpired(command, timeout=1)
 
-    monkeypatch.setattr("u2cli.screen.snapshot_backend.subprocess.run", timeout)
+    monkeypatch.setattr("androidtestclii.screen.snapshot_backend.subprocess.run", timeout)
     with pytest.raises(U2CliError) as exc:
         run_adb(None, ["devices"])
     assert exc.value.code == ErrorCode.ACTION_TIMEOUT

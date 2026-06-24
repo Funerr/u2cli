@@ -1,0 +1,18 @@
+<hierarchy package="com.example">
+  <node index="0" text="" class="android.widget.FrameLayout" package="com.example" bounds="[0,0][1080,2400]" enabled="true">
+    <node index="0" text="Welcome" class="android.widget.TextView" package="com.example" bounds="[40,96][900,160]" enabled="true" />
+    <node index="1" text="" class="android.widget.LinearLayout" package="com.example" bounds="[40,180][1000,500]" enabled="true">
+      <node index="0" text="Email" class="android.widget.TextView" package="com.example" bounds="[40,198][500,250]" enabled="true" />
+      <node index="1" text="" resource-id="com.example:id/email" class="android.widget.EditText" package="com.example" bounds="[40,260][1000,340]" focusable="true" enabled="true" />
+      <node index="2" text="" content-desc="Submit form" resource-id="com.example:id/submit" class="android.widget.Button" package="com.example" bounds="[40,380][1000,460]" clickable="true" enabled="true" />
+    </node>
+    <node index="2" text="Hidden label" class="android.widget.TextView" package="com.example" bounds="[40,520][500,580]" visible-to-user="false" enabled="true" />
+    <node index="3" text="Zero size" class="android.widget.TextView" package="com.example" bounds="[40,600][40,600]" enabled="true" />
+    <node index="4" text="Offscreen" class="android.widget.TextView" package="com.example" bounds="[1200,600][1400,700]" enabled="true" />
+    <node index="5" text="" class="android.view.ViewGroup" package="com.example" bounds="[40,700][1000,1000]" enabled="true">
+      <node index="0" text="Repeat" class="android.widget.Button" package="com.example" bounds="[60,720][360,790]" clickable="true" enabled="true" />
+      <node index="1" text="Repeat" class="android.widget.Button" package="com.example" bounds="[60,800][360,870]" clickable="true" enabled="true" />
+      <node index="2" text="Repeat" class="android.widget.Button" package="com.example" bounds="[60,880][360,950]" clickable="true" enabled="true" />
+    </node>
+  </node>
+</hierarchy>
